@@ -1,4 +1,4 @@
-# AMD Inference Microservice (AIM) Walkthrough Summary
+# Deploy AMD Inference Microservice (AIM) on Instinct MI300X Demo
 
 ## Overview
 This document summarizes the successful deployment and testing of AMD Inference Microservice (AIM) on an AMD Instinct MI300X GPU system, following the walkthrough from the [AMD ROCm blog](https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html).
