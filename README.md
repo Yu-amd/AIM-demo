@@ -19,7 +19,7 @@ This document summarizes the successful deployment and testing of AMD Inference 
 
 ## Deployment Steps Completed
 
-### 1. Prerequisites Verification ✅
+### 1. Prerequisites Verification
 
 **Quick Start:** For automated validation, use the provided script:
 ```bash
@@ -44,9 +44,9 @@ Linux <hostname> <kernel-version> #<build> <distro> <date> <arch> x86_64 x86_64 
 ```
 
 **What to Check:**
-- ✅ System is Linux-based (Ubuntu, RHEL, or similar)
-- ✅ Architecture is `x86_64`
-- ✅ Kernel version is recent (5.15+ recommended for MI300X)
+- System is Linux-based (Ubuntu, RHEL, or similar)
+- Architecture is `x86_64`
+- Kernel version is recent (5.15+ recommended for MI300X)
 
 **Example Output:**
 ```
@@ -72,8 +72,8 @@ Docker version <version>, build <build-id>
 ```
 
 **What to Check:**
-- ✅ Docker is installed
-- ✅ Version is 20.10+ (recommended: 24.0+)
+- Docker is installed
+- Version is 20.10+ (recommended: 24.0+)
 
 **Example Output:**
 ```
@@ -133,8 +133,8 @@ ROCM-SMI-LIB version: <version>
 ```
 
 **What to Check:**
-- ✅ ROCm is installed
-- ✅ Version is 6.0+ (required for MI300X)
+- ROCm is installed
+- Version is 6.0+ (required for MI300X)
 
 **Example Output:**
 ```
@@ -160,10 +160,10 @@ Device  Node  IDs              Temp        Power     Partitions          SCLK   
 ```
 
 **What to Check:**
-- ✅ At least one GPU device is listed
-- ✅ Device ID is present (e.g., `0x74b5` for MI300X)
-- ✅ Temperature and power readings are reasonable
-- ✅ VRAM% shows available memory
+- At least one GPU device is listed
+- Device ID is present (e.g., `0x74b5` for MI300X)
+- Temperature and power readings are reasonable
+- VRAM% shows available memory
 
 **Get Detailed GPU Information:**
 ```bash
@@ -188,9 +188,9 @@ GPU[0]		: GFX Version: 		gfx942
 ```
 
 **What to Check:**
-- ✅ Card Series shows "AMD Instinct MI300X" (or compatible model)
-- ✅ GFX Version is `gfx942` or compatible (gfx940, gfx941, gfx942 for MI300X)
-- ✅ Device ID matches expected values
+- Card Series shows "AMD Instinct MI300X" (or compatible model)
+- GFX Version is `gfx942` or compatible (gfx940, gfx941, gfx942 for MI300X)
+- Device ID matches expected values
 
 **Troubleshooting:**
 - If `rocm-smi: command not found`, ROCm is not installed. Contact CSP support or install ROCm
@@ -227,11 +227,11 @@ crw-rw----  1 root render 226, 129 <date> renderD129
 ```
 
 **What to Check:**
-- ✅ `/dev/kfd` exists and is a character device (starts with `c`)
-- ✅ `/dev/dri/` directory exists
-- ✅ Multiple `card*` devices exist (one per GPU partition)
-- ✅ Multiple `renderD*` devices exist (one per render node)
-- ✅ Permissions show `root render` for `/dev/kfd` and `root video` for `card*`
+- `/dev/kfd` exists and is a character device (starts with `c`)
+- `/dev/dri/` directory exists
+- Multiple `card*` devices exist (one per GPU partition)
+- Multiple `renderD*` devices exist (one per render node)
+- Permissions show `root render` for `/dev/kfd` and `root video` for `card*`
 
 **Verify Device Accessibility:**
 ```bash
@@ -270,9 +270,9 @@ uid=<uid>(<username>) gid=<gid>(<group>) groups=<gid>(<group>),<gid>(render),<gi
 ```
 
 **What to Check:**
-- ✅ User is in `render` group (for `/dev/kfd` access)
-- ✅ User is in `video` group (for `/dev/dri/card*` access)
-- ✅ If running as root, these checks may not apply (root has access)
+- User is in `render` group (for `/dev/kfd` access)
+- User is in `video` group (for `/dev/dri/card*` access)
+- If running as root, these checks may not apply (root has access)
 
 **Example Output (non-root user):**
 ```
@@ -309,8 +309,8 @@ Swap:          <size>G      <used>G     <free>G
 ```
 
 **What to Check:**
-- ✅ At least 64GB RAM available (128GB+ recommended for 32B models)
-- ✅ Sufficient free memory for model loading
+- At least 64GB RAM available (128GB+ recommended for 32B models)
+- Sufficient free memory for model loading
 
 **Example Output:**
 ```
@@ -331,8 +331,8 @@ Filesystem      Size  Used Avail Use% Mounted on
 ```
 
 **What to Check:**
-- ✅ At least 100GB free space (200GB+ recommended)
-- ✅ Model weights can be 60GB+ for large models
+- At least 100GB free space (200GB+ recommended)
+- Model weights can be 60GB+ for large models
 
 **Example Output:**
 ```
@@ -364,8 +364,8 @@ PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
 ```
 
 **What to Check:**
-- ✅ Internet connectivity is working
-- ✅ Required for downloading model weights and container images
+- Internet connectivity is working
+- Required for downloading model weights and container images
 
 **Test Docker Hub Access:**
 ```bash
@@ -403,8 +403,8 @@ tcp        0      0 0.0.0.0:8000            0.0.0.0:*               LISTEN
 ```
 
 **What to Check:**
-- ✅ Port 8000 is available (or choose a different port)
-- ✅ If port is in use, either stop the service or use `-p <different-port>:8000`
+- Port 8000 is available (or choose a different port)
+- If port is in use, either stop the service or use `-p <different-port>:8000`
 
 **Troubleshooting:**
 - If port is in use, find the process: `sudo lsof -i :8000` or `sudo netstat -tulpn | grep 8000`
@@ -432,7 +432,7 @@ Before proceeding to deployment, verify all items:
 
 **If all checks pass, proceed to Step 2: AIM Container Deployment.**
 
-### 2. AIM Container Deployment ✅
+### 2. AIM Container Deployment
 
 #### Step 2.1: Clone AIM Deployment Repository
 
@@ -455,8 +455,8 @@ Resolving deltas: 100% (<n>/<n>), done.
 ```
 
 **What to Check:**
-- ✅ Repository cloned successfully
-- ✅ No error messages
+- Repository cloned successfully
+- No error messages
 
 **Verify Repository Contents:**
 ```bash
@@ -501,9 +501,9 @@ docker.io/amdenterpriseai/aim-qwen-qwen3-32b:0.8.4
 ```
 
 **What to Check:**
-- ✅ Image pull completes without errors
-- ✅ Final status shows "Downloaded newer image" or "Image is up to date"
-- ✅ Digest is shown (for verification)
+- Image pull completes without errors
+- Final status shows "Downloaded newer image" or "Image is up to date"
+- Digest is shown (for verification)
 
 **Verify Image is Available:**
 ```bash
@@ -516,8 +516,8 @@ amdenterpriseai/aim-qwen-qwen3-32b   0.8.4    <image-id>   <size>   <time-ago>
 ```
 
 **What to Check:**
-- ✅ Image is listed with correct tag
-- ✅ Image size is reasonable (several GB)
+- Image is listed with correct tag
+- Image size is reasonable (several GB)
 
 **Troubleshooting:**
 - If pull fails with "unauthorized", check Docker Hub access
@@ -562,11 +562,11 @@ AIM Profile Compatibility Report
 ```
 
 **What to Check:**
-- ✅ GPU is detected ("Detected <n> AMD GPU(s)")
-- ✅ GPU model is identified correctly (MI300X, MI325X, etc.)
-- ✅ VRAM information is shown
-- ✅ At least one profile shows "compatible" status
-- ✅ No critical errors in output
+- GPU is detected ("Detected <n> AMD GPU(s)")
+- GPU model is identified correctly (MI300X, MI325X, etc.)
+- VRAM information is shown
+- At least one profile shows "compatible" status
+- No critical errors in output
 
 **Troubleshooting:**
 - If "Detected 0 AMD GPU(s)", verify GPU device access in container
@@ -596,8 +596,8 @@ docker run -d --name aim-qwen3-32b \
 ```
 
 **What to Check:**
-- ✅ Container ID is returned (long hexadecimal string)
-- ✅ No error messages
+- Container ID is returned (long hexadecimal string)
+- No error messages
 
 **Verify Container is Running:**
 ```bash
@@ -610,9 +610,9 @@ docker ps | grep aim-qwen3-32b
 ```
 
 **What to Check:**
-- ✅ Container is listed
-- ✅ Status shows "Up <time>"
-- ✅ Port mapping shows `0.0.0.0:8000->8000/tcp`
+- Container is listed
+- Status shows "Up <time>"
+- Port mapping shows `0.0.0.0:8000->8000/tcp`
 
 **Troubleshooting:**
 - If container exits immediately, check logs: `docker logs aim-qwen3-32b`
@@ -640,10 +640,10 @@ INFO 11-26 <time> [gpu_model_runner.py:1932] Starting to load model Qwen/Qwen3-3
 ```
 
 **What to Check:**
-- ✅ GPU detection succeeds
-- ✅ Profile is selected
-- ✅ vLLM API server starts
-- ✅ Model loading begins
+- GPU detection succeeds
+- Profile is selected
+- vLLM API server starts
+- Model loading begins
 
 **Expected Output (During Model Loading):**
 ```
@@ -654,8 +654,8 @@ Loading safetensors checkpoint shards:  12% Completed | 2/17 [00:04<00:34,  2.29
 ```
 
 **What to Check:**
-- ✅ Model shards are loading (progress increases)
-- ✅ No errors during loading
+- Model shards are loading (progress increases)
+- No errors during loading
 
 **Expected Output (When Ready):**
 ```
@@ -665,8 +665,8 @@ INFO:     Application startup complete.
 ```
 
 **What to Check:**
-- ✅ "Application startup complete" message appears
-- ✅ Server is ready to accept requests
+- "Application startup complete" message appears
+- Server is ready to accept requests
 
 **Troubleshooting:**
 - If model download fails, check network connectivity
@@ -697,8 +697,8 @@ docker ps -a | grep aim-qwen3-32b
 ```
 
 **What to Check:**
-- ✅ Status is "Up" (not "Exited" or "Restarting")
-- ✅ Uptime is reasonable
+- Status is "Up" (not "Exited" or "Restarting")
+- Uptime is reasonable
 
 **Check Resource Usage:**
 ```bash
@@ -712,16 +712,16 @@ CONTAINER ID   NAME              CPU %     MEM USAGE / LIMIT     MEM %     NET I
 ```
 
 **What to Check:**
-- ✅ Memory usage is reasonable (several GB)
-- ✅ CPU usage may be high during model loading, then lower when idle
-- ✅ Container is not using excessive resources
+- Memory usage is reasonable (several GB)
+- CPU usage may be high during model loading, then lower when idle
+- Container is not using excessive resources
 
 **Troubleshooting:**
 - If container is "Exited", check exit code: `docker inspect aim-qwen3-32b | grep -A 5 State`
 - If container is "Restarting", check logs for errors
 - If memory usage is very high, verify model size matches available resources
 
-### 3. AIM Features Explored ✅
+### 3. AIM Features Explored
 
 #### Profile Selection
 - AIM automatically detected the MI300X GPU
@@ -743,14 +743,14 @@ AIM automatically set the following optimization variables:
 - `VLLM_ROCM_USE_AITER=1`
 - `VLLM_ROCM_USE_AITER_RMSNORM=1`
 
-### 4. Model Loading ✅
+### 4. Model Loading
 - Model: Qwen/Qwen3-32B (32B parameters)
 - Download time: ~14.7 seconds
 - Loading: 17 checkpoint shards loaded successfully
 - GPU memory usage: 91% VRAM allocated during operation
 - Total startup time: ~2.5 minutes
 
-### 5. Inference Testing ✅
+### 5. Inference Testing
 
 **Quick Start:** For automated validation, use the provided script:
 ```bash
@@ -775,8 +775,8 @@ INFO:     Application startup complete.
 ```
 
 **What to Check:**
-- ✅ Message appears in logs
-- ✅ No errors after this message
+- Message appears in logs
+- No errors after this message
 
 **Alternative: Check if server responds:**
 ```bash
@@ -815,8 +815,8 @@ curl -v http://localhost:8000/health
 ```
 
 **What to Check:**
-- ✅ HTTP status is 200 OK
-- ✅ Connection succeeds
+- HTTP status is 200 OK
+- Connection succeeds
 
 **Troubleshooting:**
 - If connection refused, verify container is running and port is mapped
@@ -851,9 +851,9 @@ curl -s http://localhost:8000/v1/models | python3 -m json.tool
 ```
 
 **What to Check:**
-- ✅ JSON response is valid
-- ✅ Model ID matches expected model (Qwen/Qwen3-32B)
-- ✅ `max_model_len` is shown (32768 for Qwen3-32B)
+- JSON response is valid
+- Model ID matches expected model (Qwen/Qwen3-32B)
+- `max_model_len` is shown (32768 for Qwen3-32B)
 
 **Alternative (without python):**
 ```bash
@@ -921,10 +921,10 @@ data: [DONE]
 **Note:** Without the `-s` flag, curl shows progress output that can interfere with parsing. Always use `curl -s` for streaming responses.
 
 **What to Check:**
-- ✅ Stream starts immediately (shows progress)
-- ✅ Thinking process is visible (may include `<thinking>` tags or reasoning text)
-- ✅ Final response follows after thinking
-- ✅ Stream ends with `[DONE]`
+- Stream starts immediately (shows progress)
+- Thinking process is visible (may include `<thinking>` tags or reasoning text)
+- Final response follows after thinking
+- Stream ends with `[DONE]`
 
 **Process Streaming Response (Python example - shows both thinking and response):**
 ```bash
@@ -1041,11 +1041,11 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ```
 
 **What to Check:**
-- ✅ Response is valid JSON
-- ✅ `model` field shows "Qwen/Qwen3-32B"
-- ✅ `choices[0].message.content` contains text (may include thinking + response)
-- ✅ `usage.completion_tokens` shows total tokens used (thinking + response)
-- ✅ `finish_reason` is "stop" (complete) or "length" (truncated - increase max_tokens)
+- Response is valid JSON
+- `model` field shows "Qwen/Qwen3-32B"
+- `choices[0].message.content` contains text (may include thinking + response)
+- `usage.completion_tokens` shows total tokens used (thinking + response)
+- `finish_reason` is "stop" (complete) or "length" (truncated - increase max_tokens)
 
 **Token Allocation Guidelines:**
 
@@ -1167,9 +1167,9 @@ curl -X POST http://localhost:8000/v1/completions \
 ```
 
 **What to Check:**
-- ✅ Response is valid JSON
-- ✅ `choices[0].text` contains generated continuation
-- ✅ Token usage is shown
+- Response is valid JSON
+- `choices[0].text` contains generated continuation
+- Token usage is shown
 
 **Troubleshooting:**
 - Similar to chat completions troubleshooting
@@ -1196,9 +1196,9 @@ GPU[0]		: GPU Memory Read/Write Activity (%): <percentage>
 ```
 
 **What to Check:**
-- ✅ GPU use increases during inference (may reach 50-100%)
-- ✅ VRAM usage is high (85-95% for 32B model)
-- ✅ Memory activity increases during processing
+- GPU use increases during inference (may reach 50-100%)
+- VRAM usage is high (85-95% for 32B model)
+- Memory activity increases during processing
 
 **Expected Behavior:**
 - GPU use: 0-10% when idle, 50-100% during inference
@@ -1230,9 +1230,9 @@ sys	0m0.00Xs
 ```
 
 **What to Check:**
-- ✅ First request may take 10-60 seconds (cold start)
-- ✅ Subsequent requests should be faster (5-30 seconds depending on length)
-- ✅ Response time is reasonable for model size
+- First request may take 10-60 seconds (cold start)
+- Subsequent requests should be faster (5-30 seconds depending on length)
+- Response time is reasonable for model size
 
 **Test Multiple Requests:**
 ```bash
@@ -1271,7 +1271,7 @@ Before considering deployment complete, verify:
 - [ ] Response times are acceptable: Requests complete in reasonable time
 - [ ] No errors in logs: `docker logs aim-qwen3-32b` shows no critical errors
 
-**If all checks pass, your AIM deployment is fully operational! ✅**
+**If all checks pass, your AIM deployment is fully operational!**
 
 ## Key AIM Capabilities Demonstrated
 
