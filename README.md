@@ -6,7 +6,7 @@ This document summarizes the successful deployment and testing of AMD Inference 
 ## System Configuration
 
 ### Hardware
-- **GPU**: AMD Instinct MI300X VF
+- **GPU**: AMD Developer Cloud AMD Instinct MI300X VF
 - **GPU ID**: 0x74b5
 - **VRAM**: 196GB total
 - **GFX Version**: gfx942
@@ -1353,7 +1353,7 @@ Other AIM container images available:
 
 - **Blog Post**: https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html
 - **Deployment Repository**: https://github.com/amd-enterprise-ai/aim-deploy
-- **AIM Catalog**: Available container images for various models
+- **AIM Catalog**: https://enterprise-ai.docs.amd.com/en/latest/aims/catalog/models.html
 
 ## Troubleshooting Guide
 
@@ -1643,15 +1643,293 @@ If issues persist after trying the above solutions:
    - For ROCm issues, check AMD ROCm documentation
    - For AIM-specific issues, open GitHub issue with diagnostic information
 
-## Conclusion
+## Container Hygiene and Maintenance
 
-Successfully deployed and tested AMD Inference Microservice (AIM) on MI300X GPU. The deployment demonstrated:
-- Automatic hardware detection and profile selection
-- Optimized vLLM configuration for AMD GPUs
-- Production-ready OpenAI-compatible API
-- Efficient model loading and inference
+This section covers best practices for managing AIM containers, cleaning up resources, and maintaining a clean Docker environment.
+
+### Stopping AIM Containers
+
+**Stop a specific container:**
+```bash
+docker stop aim-qwen3-32b
+```
+
+**Stop all running AIM containers:**
+```bash
+docker ps --filter "name=aim" --format "{{.Names}}" | xargs -r docker stop
+```
+
+**Stop all containers (use with caution):**
+```bash
+docker stop $(docker ps -q)
+```
+
+### Removing Containers
+
+**Remove a stopped container:**
+```bash
+docker rm aim-qwen3-32b
+```
+
+**Remove container even if running (force):**
+```bash
+docker rm -f aim-qwen3-32b
+```
+
+**Remove all stopped AIM containers:**
+```bash
+docker ps -a --filter "name=aim" --format "{{.Names}}" | xargs -r docker rm
+```
+
+**Remove all stopped containers:**
+```bash
+docker container prune -f
+```
+
+### Cleaning Up Docker Resources
+
+**Remove unused containers, networks, and images:**
+```bash
+docker system prune
+```
+
+**Remove all unused resources including volumes (more aggressive):**
+```bash
+docker system prune -a --volumes
+```
+
+**Remove only unused images:**
+```bash
+docker image prune -a
+```
+
+**Remove only unused volumes:**
+```bash
+docker volume prune
+```
+
+**Remove only unused networks:**
+```bash
+docker network prune
+```
+
+### Complete Cleanup Script
+
+**Stop and remove all AIM containers:**
+```bash
+#!/bin/bash
+# Stop all AIM containers
+docker ps --filter "name=aim" --format "{{.Names}}" | xargs -r docker stop
+
+# Remove all AIM containers
+docker ps -a --filter "name=aim" --format "{{.Names}}" | xargs -r docker rm
+
+# Optional: Remove AIM images (will need to pull again)
+# docker rmi amdenterpriseai/aim-qwen-qwen3-32b:0.8.4
+
+echo "AIM containers cleaned up"
+```
+
+### Checking Container Status
+
+**List all containers (running and stopped):**
+```bash
+docker ps -a
+```
+
+**List only running containers:**
+```bash
+docker ps
+```
+
+**List containers by name pattern:**
+```bash
+docker ps -a --filter "name=aim"
+```
+
+**Check container resource usage:**
+```bash
+docker stats aim-qwen3-32b
+```
+
+**Check all container resource usage:**
+```bash
+docker stats
+```
+
+### Viewing Container Logs
+
+**View recent logs:**
+```bash
+docker logs aim-qwen3-32b
+```
+
+**Follow logs in real-time:**
+```bash
+docker logs -f aim-qwen3-32b
+```
+
+**View last N lines:**
+```bash
+docker logs --tail 50 aim-qwen3-32b
+```
+
+**View logs with timestamps:**
+```bash
+docker logs -t aim-qwen3-32b
+```
+
+### Restarting Containers
+
+**Restart a container:**
+```bash
+docker restart aim-qwen3-32b
+```
+
+**Start a stopped container:**
+```bash
+docker start aim-qwen3-32b
+```
+
+**Stop a running container:**
+```bash
+docker stop aim-qwen3-32b
+```
+
+### Managing Container Resources
+
+**Check Docker disk usage:**
+```bash
+docker system df
+```
+
+**Detailed breakdown:**
+```bash
+docker system df -v
+```
+
+**Check specific container size:**
+```bash
+docker ps -s --filter "name=aim-qwen3-32b"
+```
+
+### Best Practices
+
+1. **Regular Cleanup:**
+   ```bash
+   # Weekly cleanup of unused resources
+   docker system prune -f
+   ```
+
+2. **Before Redeployment:**
+   ```bash
+   # Stop and remove old container before deploying new one
+   docker stop aim-qwen3-32b
+   docker rm aim-qwen3-32b
+   ```
+
+3. **Monitor Resource Usage:**
+   ```bash
+   # Keep an eye on disk space
+   docker system df
+   df -h /
+   ```
+
+4. **Preserve Important Containers:**
+   ```bash
+   # Tag important containers before cleanup
+   docker tag amdenterpriseai/aim-qwen-qwen3-32b:0.8.4 my-aim-backup:0.8.4
+   ```
+
+5. **Clean Up After Testing:**
+   ```bash
+   # Remove test containers and images
+   docker ps -a --filter "name=test" --format "{{.Names}}" | xargs -r docker rm -f
+   docker images --filter "dangling=true" -q | xargs -r docker rmi
+   ```
+
+### Troubleshooting Container Issues
+
+**Container won't stop:**
+```bash
+# Force stop
+docker kill aim-qwen3-32b
+
+# Then remove
+docker rm aim-qwen3-32b
+```
+
+**Container keeps restarting:**
+```bash
+# Check restart policy
+docker inspect aim-qwen3-32b | grep -A 5 RestartPolicy
+
+# Remove restart policy
+docker update --restart=no aim-qwen3-32b
+```
+
+**Port already in use:**
+```bash
+# Find what's using the port
+sudo lsof -i :8000
+# Or
+sudo netstat -tulpn | grep 8000
+
+# Stop the conflicting container
+docker ps | grep 8000
+docker stop <container-id>
+```
+
+**Out of disk space:**
+```bash
+# Check usage
+docker system df
+
+# Clean up
+docker system prune -a --volumes
+
+# Check system disk
+df -h /
+```
+
+**Container logs too large:**
+```bash
+# Truncate logs (requires container restart)
+truncate -s 0 $(docker inspect --format='{{.LogPath}}' aim-qwen3-32b)
+
+# Or configure log rotation in docker daemon
+```
+
+### Quick Reference Commands
+
+```bash
+# Stop AIM container
+docker stop aim-qwen3-32b
+
+# Remove AIM container
+docker rm aim-qwen3-32b
+
+# Stop and remove in one command
+docker rm -f aim-qwen3-32b
+
+# View container status
+docker ps -a | grep aim
+
+# View container logs
+docker logs aim-qwen3-32b
+
+# Check resource usage
+docker stats aim-qwen3-32b
+
+# Clean up unused resources
+docker system prune -f
+
+# Check disk usage
+docker system df
+```
+
+## Conclusion
 
 The AIM framework provides a streamlined way to deploy AI models on AMD Instinct GPUs with minimal configuration overhead.
 
 This comprehensive validation guide ensures that anyone with access to a similar CSP node can verify each step of the deployment process and troubleshoot issues as they arise.
-
