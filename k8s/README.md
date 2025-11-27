@@ -306,7 +306,7 @@ bash ~/AIM-demo/k8s/scripts/fix-lgtm-storage.sh
 # fi
 
 # For remote access: Set up SSH port forwarding first (on local machine)
-# ssh -L 3000:localhost:3000 user@remote-mi300x-node
+ssh -L 3000:localhost:3000 user@remote-mi300x-node
 # Keep SSH session open!
 
 # Port forward Grafana service (on remote node)
