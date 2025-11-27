@@ -34,6 +34,10 @@ kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o
 echo ""
 
 echo "=== Summary ==="
-echo "To trigger autoscaling, send concurrent requests to port 8080:"
-echo "  for i in {1..5}; do curl -X POST http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\": [{\"role\": \"user\", \"content\": \"Hello $i\"}], \"stream\": true}' --no-buffer > /dev/null 2>&1 & done"
+echo "To trigger autoscaling, send concurrent NON-STREAMING requests to port 8080:"
+echo "  Use the test script: bash ~/AIM-demo/k8s/scripts/test-autoscaling.sh"
+echo "  Or manually:"
+echo "  for i in {1..5}; do curl -X POST http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{\"messages\": [{\"role\": \"user\", \"content\": \"Write a detailed explanation (request $i)\"}], \"stream\": false}' --max-time 30 > /dev/null 2>&1 & done"
+echo ""
+echo "Note: Use stream:false for testing autoscaling (streaming requests complete too quickly)"
 
