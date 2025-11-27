@@ -18,20 +18,11 @@ AMD Inference Microservice (AIM) provides a streamlined way to deploy AI models 
 
 ## Prerequisites
 
-### Automated Prerequisites Validation
-
-**Before proceeding, run the automated validation script:**
-
-```bash
-cd k8s/scripts
-bash ./validate-k8s-prerequisites.sh
-```
-
-This script checks all prerequisites automatically and provides a summary. See [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md) for detailed prerequisite information.
-
 ### Kubernetes Cluster Setup
 
 **Before proceeding, you must have a Kubernetes cluster with AMD GPU support configured.**
+
+**Note:** If you're using AMD Developer Cloud or a fresh node, you'll need to set up Kubernetes first before validating prerequisites.
 
 Set up your cluster using the [Kubernetes-MI300X guide](https://github.com/Yu-amd/Kubernetes-MI300X):
 
@@ -64,6 +55,19 @@ sudo ./install-kubernetes.sh
 - **Kubernetes**: v1.28+ (installed via Kubernetes-MI300X)
 - **GPU Nodes**: AMD Instinct MI300X GPUs with AMD GPU Operator installed
 - **Default Storage Class**: Required for observability components (optional but recommended)
+
+### Automated Prerequisites Validation
+
+**After setting up your Kubernetes cluster, run the automated validation script to verify everything is configured correctly:**
+
+```bash
+cd k8s/scripts
+bash ./validate-k8s-prerequisites.sh
+```
+
+This script checks all prerequisites automatically and provides a summary. See [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md) for detailed prerequisite information.
+
+**Note:** This validation script requires an existing Kubernetes cluster. If you haven't set up your cluster yet, complete the Kubernetes Cluster Setup section above first.
 
 ## Quick Start
 
