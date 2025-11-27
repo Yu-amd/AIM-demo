@@ -18,6 +18,17 @@ AMD Inference Microservice (AIM) provides a streamlined way to deploy AI models 
 
 ## Prerequisites
 
+### Automated Prerequisites Validation
+
+**Before proceeding, run the automated validation script:**
+
+```bash
+cd k8s/scripts
+bash ./validate-k8s-prerequisites.sh
+```
+
+This script checks all prerequisites automatically and provides a summary. See [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md) for detailed prerequisite information.
+
 ### Kubernetes Cluster Setup
 
 **Before proceeding, you must have a Kubernetes cluster with AMD GPU support configured.**

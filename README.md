@@ -7,12 +7,8 @@ This document summarizes the successful deployment and testing of AMD Inference 
 
 This repository provides deployment guides for both Docker and Kubernetes:
 
-- **[Docker Deployment](./README.md)** - Single-node Docker deployment (this guide)
-- **[Kubernetes Deployment](./k8s/README.md)** - Production-ready Kubernetes deployment with KServe
-- **[Kubernetes Deployment Guide](./k8s/KUBERNETES-DEPLOYMENT.md)** - Comprehensive step-by-step Kubernetes walkthrough
-- **[Kubernetes Quick Reference](./k8s/kubernetes-quick-reference.md)** - Quick command reference for Kubernetes operations
-
-**For Kubernetes deployment, see the [Kubernetes Deployment Guide](./k8s/README.md) and [detailed walkthrough](./k8s/KUBERNETES-DEPLOYMENT.md).**
+- **Docker Deployment** - Single-node Docker deployment (this guide)
+- **Kubernetes Deployment** - Production-ready Kubernetes deployment with KServe ([Kubernetes Deployment Guide](./k8s/README.md))
 
 ## System Configuration
 

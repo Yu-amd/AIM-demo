@@ -82,6 +82,28 @@ kubectl get pods -n amd-gpu-operator
 
 ### Verify Prerequisites
 
+**Automated Prerequisites Check (Recommended):**
+
+Run the automated validation script to check all prerequisites at once:
+
+```bash
+cd k8s/scripts
+bash ./validate-k8s-prerequisites.sh
+```
+
+This script automates all prerequisite checks and provides a summary. It checks:
+- Required tools (kubectl, Helm, curl, git, jq)
+- Kubernetes cluster access
+- GPU operator and device plugin
+- GPU resources availability
+- Storage class configuration
+- Cluster admin privileges
+- Internet access
+
+**Manual Prerequisites Check (Alternative):**
+
+If you prefer to check manually, follow the steps below:
+
 **Verify Kubernetes Cluster:**
 ```bash
 # Check kubectl version
@@ -250,6 +272,14 @@ Allocated resources:
 
 This guide follows the [official AMD AIM deployment approach using KServe](https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html). KServe provides a Kubernetes-native framework for serving ML models with built-in support for autoscaling, canary deployments, and observability.
 
+**Before starting, validate prerequisites:**
+```bash
+cd k8s/scripts
+bash ./validate-k8s-prerequisites.sh
+```
+
+This automated script checks all prerequisites and provides a summary. See the [Prerequisites](#prerequisites) section for manual verification steps.
+
 ### Quick Deployment Overview
 
 ```bash
@@ -292,13 +322,11 @@ curl -X POST http://localhost:8000/v1/chat/completions \
      jq -r '.choices[0].delta.content // empty' | \
      tr -d '\n' && echo
 
-# 4.5. Switch to scalable service for metrics (optional - if you only have one GPU)
-# Stop basic service to free GPU
-kubectl delete inferenceservice aim-qwen3-32b
-
-# Wait for scalable service to start
-kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
-
+# 4.5. Deploy scalable service for metrics (optional)
+# Check GPU availability: kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
+# If single GPU: Stop basic service first: kubectl delete inferenceservice aim-qwen3-32b
+# If multiple GPUs (e.g., 8x MI300X): Skip stopping basic service, deploy scalable service alongside it
+# Wait for scalable service to start: kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
 # Test scalable service (port 8080)
 # For remote access: ssh -L 8080:localhost:8080 user@remote-mi300x-node (or add to existing SSH)
 kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
@@ -1314,13 +1342,35 @@ Hello! How can I help you today?
 
 ---
 
-## Step 4.5: Switch to Scalable Service for Metrics (Optional - Single GPU Setup)
-
-**If you only have one GPU** and want to use the scalable service with metrics enabled, you need to stop the basic service first to free up the GPU.
+## Step 4.5: Deploy Scalable Service for Metrics (Optional)
 
 **Note:** The scalable service (`aim-qwen3-32b-scalable`) has `VLLM_ENABLE_METRICS=true` which enables metrics collection for Grafana. The basic service does not export metrics.
 
-### Step 4.5.1: Stop the Basic Service
+**GPU Resource Requirements:**
+- **Single GPU node**: You need to stop the basic service first to free the GPU (see Step 4.5.1)
+- **Multiple GPU node (e.g., 8x MI300X)**: You can run both services simultaneously - skip Step 4.5.1 and proceed directly to Step 4.5.2
+
+**Check your GPU availability:**
+```bash
+# Check how many GPUs are available
+kubectl describe node $(kubectl get nodes -o name | head -1) | grep -A 5 "amd.com/gpu"
+```
+
+**If you have multiple GPUs (e.g., 8x MI300X):**
+- You can keep the basic service running
+- Deploy the scalable service alongside it
+- Both services will run simultaneously
+- Proceed directly to Step 4.5.2 (skip Step 4.5.1)
+
+### Step 4.5.1: Stop the Basic Service (Single GPU Only)
+
+**⚠️ Only needed if you have a single GPU node.**
+
+**If you have multiple GPUs (e.g., 8x MI300X):**
+- **Skip this step** - You can run both services simultaneously
+- Proceed directly to Step 4.5.2
+
+**If you only have one GPU:**
 
 **Delete the basic InferenceService to free the GPU:**
 ```bash
@@ -1347,7 +1397,17 @@ aim-qwen3-32b-scalable                                                          
 - Basic service (`aim-qwen3-32b`) is no longer listed
 - Scalable service exists (may show as not READY yet)
 
-### Step 4.5.2: Wait for Scalable Service to Start
+### Step 4.5.2: Deploy and Wait for Scalable Service to Start
+
+**If you skipped Step 4.5.1 (multiple GPUs):**
+- The scalable service should already be deployed from Step 5
+- Check if it exists: `kubectl get inferenceservice aim-qwen3-32b-scalable`
+- If it exists, proceed to check status below
+- If it doesn't exist, deploy it following Step 5 instructions
+
+**If you completed Step 4.5.1 (single GPU):**
+- The scalable service should start now that the GPU is free
+- Proceed to check status below
 
 **Check scalable service status:**
 ```bash
@@ -1561,20 +1621,26 @@ Hello! How can I help you today?
 - ✅ KEDA autoscaling support
 - ✅ Metrics visible in Grafana (after Step 7)
 
-**Note:** If you want to keep both services running, you'll need at least 2 GPUs. With a single GPU, you can only run one service at a time.
+**Note on GPU Requirements:**
+- **Single GPU**: You can only run one service at a time. Stop the basic service to use the scalable service.
+- **Multiple GPUs (e.g., 8x MI300X)**: You can run both services simultaneously. Each service uses 1 GPU, so with 8 GPUs you have plenty of capacity for both services plus room for autoscaling.
 
 ---
 
 ## Step 5: Deploy Monitored Inference Service (Optional)
 
-**Note:** If you completed Step 4.5 (switched to scalable service), the scalable InferenceService is already deployed with metrics enabled. You can skip Step 5.1 and 5.2, and proceed directly to Step 6 to view metrics in Grafana.
+**Note:** 
+- **If you completed Step 4.5 (switched to scalable service)**: The scalable InferenceService is already deployed with metrics enabled. You can skip Step 5.1 and 5.2, and proceed directly to Step 6 to view metrics in Grafana.
+- **If you have multiple GPUs (e.g., 8x MI300X)**: You can deploy the scalable service alongside the basic service without stopping it. Both services will run simultaneously.
 
 This step creates an InferenceService with OpenTelemetry sidecar injection enabled, the VLLM_ENABLE_METRICS environment variable set to true, and KEDA-based autoscaling configured to scale based on the number of running inference requests.
 
 **Prerequisites:**
 - Observability stack installed (Step 2.3)
 - KEDA installed (Step 2.3)
-- **OR** Basic service stopped and scalable service running (Step 4.5)
+- **GPU availability**: 
+  - Single GPU: Basic service must be stopped (Step 4.5.1)
+  - Multiple GPUs: Can deploy alongside basic service (no need to stop it)
 
 ### Step 5.1: Verify ServingRuntime is Applied
 
