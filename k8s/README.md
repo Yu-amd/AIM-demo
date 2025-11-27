@@ -132,7 +132,9 @@ curl -X POST http://localhost:8000/v1/chat/completions \
      tr -d '\n' && echo
 
 # 4.5. Deploy scalable service for metrics (optional)
-# Check GPU availability (replace <node-name> with your node name):
+# Get node name(s):
+kubectl get nodes
+# Check GPU availability (replace <node-name> with the actual node name from the command above):
 kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
 # If single GPU: Stop basic service first (skip this command if you have multiple GPUs)
 kubectl delete inferenceservice aim-qwen3-32b
