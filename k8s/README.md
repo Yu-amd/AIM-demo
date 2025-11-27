@@ -121,7 +121,12 @@ kubectl port-forward service/aim-qwen3-32b-predictor 8000:80
 # Keep this terminal open!
 # Note: If you get "service not found", you may have already deleted it in Step 4.5. Use scalable service instead.
 
-# In another terminal (or if using SSH, on your local machine):
+# Open a new terminal (or if using SSH, use your local machine terminal):
+# If using SSH: The port forwarding is already set up via SSH, so you can run curl directly on your local machine
+# If working directly on the node: Open a new terminal on the same node (you'll start in /root)
+# Navigate to the deployment directory (or any directory - curl works from anywhere):
+cd ~/aim-deploy/kserve/kserve-install
+# Make sure the port-forward command above is still running in the previous terminal
 curl -X POST http://localhost:8000/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
@@ -191,7 +196,12 @@ ssh -L 8080:localhost:8080 user@remote-mi300x-node
 # Port forward scalable service (on remote node)
 kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
 # Keep this terminal open!
-# In another terminal (or if using SSH, on your local machine), test the service:
+# Open a new terminal (or if using SSH, use your local machine terminal):
+# If using SSH: The port forwarding is already set up via SSH, so you can run curl directly on your local machine
+# If working directly on the node: Open a new terminal on the same node (you'll start in /root)
+# Navigate to the deployment directory (or any directory - curl works from anywhere):
+cd ~/aim-deploy/kserve/kserve-install
+# Make sure the port-forward command above is still running in the previous terminal
 curl -X POST http://localhost:8080/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
