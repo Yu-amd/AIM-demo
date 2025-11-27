@@ -1,7 +1,18 @@
 # Quickstart for AI Developers: Deploy AMD Inference Microservice (AIM) on Instinct MI300X
 
 ## Overview
-This document summarizes the successful deployment and testing of AMD Inference Microservice (AIM) on an AMD Instinct MI300X GPU system, following the walkthrough from the [AMD ROCm blog](https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html).
+This document summarizes the successful deployment and testing of AMD Inference Microservice (AIM) on an AMD Instinct MI300X GPU system using Docker, following the walkthrough from the [AMD ROCm blog](https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html).
+
+## Deployment Options
+
+This repository provides deployment guides for both Docker and Kubernetes:
+
+- **[Docker Deployment](./README.md)** - Single-node Docker deployment (this guide)
+- **[Kubernetes Deployment](./k8s/README.md)** - Production-ready Kubernetes deployment with KServe
+- **[Kubernetes Deployment Guide](./k8s/KUBERNETES-DEPLOYMENT.md)** - Comprehensive step-by-step Kubernetes walkthrough
+- **[Kubernetes Quick Reference](./k8s/kubernetes-quick-reference.md)** - Quick command reference for Kubernetes operations
+
+**For Kubernetes deployment, see the [Kubernetes Deployment Guide](./k8s/README.md) and [detailed walkthrough](./k8s/KUBERNETES-DEPLOYMENT.md).**
 
 ## System Configuration
 
@@ -1338,11 +1349,18 @@ docker run -d --name aim-qwen3-32b \
 ## Next Steps (Optional)
 
 ### Kubernetes/KServe Deployment
-The repository includes comprehensive Kubernetes deployment examples:
-- Location: `/root/aim-deploy/kserve/`
-- Includes KServe integration
-- Supports autoscaling with KEDA
-- Observability with OpenTelemetry, Grafana, Prometheus
+
+For Kubernetes deployment with KServe, see the comprehensive guides in the `k8s/` directory:
+
+- **[Kubernetes Deployment Guide](./k8s/README.md)** - Overview and quick start
+- **[Detailed Kubernetes Walkthrough](./k8s/KUBERNETES-DEPLOYMENT.md)** - Complete step-by-step instructions
+- **[Kubernetes Quick Reference](./k8s/kubernetes-quick-reference.md)** - Quick command reference
+
+The Kubernetes deployment includes:
+- KServe integration for Kubernetes-native model serving
+- Autoscaling with KEDA based on custom metrics
+- Observability with OpenTelemetry LGTM stack (Loki, Grafana, Tempo, Mimir)
+- Production-ready configuration with health checks and resource management
 
 ### Additional Models
 Other AIM container images available:

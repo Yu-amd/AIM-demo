@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-config
+  namespace: aim
+data:
+  # AIM service configuration
+  AIM_PORT: "8000"
+  AIM_HOST: "0.0.0.0"
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  # Model configuration
+  MODEL_NAME: "qwen3-32b"
+  # Health check configuration
+  HEALTH_CHECK_INTERVAL: "30"
+  # Performance tuning
+  MAX_CONCURRENT_REQUESTS: "10"
+  REQUEST_TIMEOUT: "300"
+

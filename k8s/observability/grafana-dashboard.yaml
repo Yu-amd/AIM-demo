@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aim-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  aim-inference-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "AIM Inference Service Dashboard",
+        "tags": ["aim", "inference", "gpu"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Latency (p95)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "p95"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "GPU Utilization",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "gpu_utilization_percent",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"aim.*\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"aim.*\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Active Pods",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{pod=~\"aim.*\", phase=\"Running\"})",
+                "legendFormat": "Running Pods"
+              }
+            ],
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16}
+          }
+        ],
+        "refresh": "10s",
+        "schemaVersion": 27,
+        "version": 1
+      }
+    }
+

@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aim-qwen3-32b-pdb
+  namespace: aim
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: aim-qwen3-32b
+

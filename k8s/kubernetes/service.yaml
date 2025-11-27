@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aim-qwen3-32b
+  namespace: aim
+  labels:
+    app: aim-qwen3-32b
+    component: inference
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: aim-qwen3-32b
+---
+# Optional: LoadBalancer service for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: aim-qwen3-32b-lb
+  namespace: aim
+  labels:
+    app: aim-qwen3-32b
+    component: inference
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: aim-qwen3-32b
+

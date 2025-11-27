@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aim-qwen3-32b
+  namespace: aim
+  labels:
+    app: aim-qwen3-32b
+    component: inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aim-qwen3-32b
+  template:
+    metadata:
+      labels:
+        app: aim-qwen3-32b
+        component: inference
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Node selector for GPU nodes (adjust based on your cluster)
+      nodeSelector:
+        accelerator: amd-instinct-mi300x
+        # Or use: node-role.kubernetes.io/gpu: "true"
+      # Tolerations for GPU nodes (if tainted)
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: amd.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: aim-inference
+        image: amdenterpriseai/aim-qwen-qwen3-32b:0.8.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: AIM_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: aim-config
+              key: AIM_PORT
+        - name: AIM_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: aim-config
+              key: AIM_HOST
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: aim-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            # GPU resource request (adjust based on your cluster's GPU resource naming)
+            amd.com/gpu: 1
+            # Or: nvidia.com/gpu: 1 (if using NVIDIA resource naming)
+            memory: "64Gi"
+            cpu: "8"
+          limits:
+            amd.com/gpu: 1
+            memory: "200Gi"
+            cpu: "32"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: rocm-dev
+          mountPath: /dev/kfd
+        - name: rocm-sys
+          mountPath: /sys/class/kfd
+        - name: rocm-dri
+          mountPath: /dev/dri
+      volumes:
+      - name: rocm-dev
+        hostPath:
+          path: /dev/kfd
+      - name: rocm-sys
+        hostPath:
+          path: /sys/class/kfd
+      - name: rocm-dri
+        hostPath:
+          path: /dev/dri
+      # Security context for GPU access
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+
