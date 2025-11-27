@@ -60,8 +60,19 @@ sudo ./install-kubernetes.sh
 
 **After setting up your Kubernetes cluster, run the automated validation script to verify everything is configured correctly:**
 
+**Navigate to the AIM-demo directory:**
 ```bash
-cd k8s/scripts
+# If you're currently in the Kubernetes-MI300X directory
+cd ~/AIM-demo/k8s/scripts
+
+# Or if you need to clone the AIM-demo repository first
+cd ~
+git clone https://github.com/Yu-amd/AIM-demo.git
+cd AIM-demo/k8s/scripts
+```
+
+**Run the validation script:**
+```bash
 bash ./validate-k8s-prerequisites.sh
 ```
 
