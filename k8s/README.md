@@ -410,6 +410,7 @@ kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
 # Keep this terminal open!
 
 # In a new terminal (or if using SSH, on your local machine), send inference requests
+# Single request (for testing):
 curl -X POST http://localhost:8080/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
@@ -418,6 +419,23 @@ curl -X POST http://localhost:8080/v1/chat/completions \
      grep -v '^\[DONE\]$' | \
      jq -r '.choices[0].delta.content // empty' | \
      tr -d '\n' && echo
+
+# To trigger autoscaling (scale up), send multiple concurrent requests:
+# The autoscaling metric is vllm:num_requests_running with target value of 1
+# When running requests exceed 1, it will scale up replicas
+# Send 5-10 concurrent requests to trigger scale-up:
+for i in {1..5}; do
+  curl -X POST http://localhost:8080/v1/chat/completions \
+       -H "Content-Type: application/json" \
+       -d "{\"messages\": [{\"role\": \"user\", \"content\": \"Write a detailed explanation of machine learning (request $i)\"}], \"stream\": true}" \
+       --no-buffer > /dev/null 2>&1 &
+done
+echo "Sent 5 concurrent requests. Monitor autoscaling with: kubectl get deployment -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -w"
+# Wait for requests to complete
+wait
+
+# Alternative: Use a load testing tool or send requests in a loop:
+# while true; do curl -X POST http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' --no-buffer > /dev/null 2>&1 & sleep 1; done
 
 # Example queries to try:
 # Explain quantum computing in simple terms:
