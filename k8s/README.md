@@ -139,6 +139,42 @@ kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
 # If single GPU: Stop basic service first (skip this command if you have multiple GPUs)
 kubectl delete inferenceservice aim-qwen3-32b
 # If multiple GPUs (e.g., 8x MI300X): Skip the delete command above, deploy scalable service alongside it
+# Check if serving runtime from step 3 is already applied
+kubectl get clusterservingruntime aim-qwen3-32b-runtime
+# If not found, apply it (from the sample-minimal-aims-deployment directory)
+cd ../sample-minimal-aims-deployment
+kubectl apply -f servingruntime-aim-qwen3-32b.yaml
+cd ../kserve-install
+
+# Create the scalable inference service manifest
+cat <<'EOF' > aim-qwen3-32b-scalable.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: aim-qwen3-32b-scalable
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    model:
+      runtime: aim-qwen3-32b-runtime
+      modelFormat:
+        name: aim-qwen3-32b
+      resources:
+        limits:
+          memory: "128Gi"
+          cpu: "8"
+          amd.com/gpu: "1"
+        requests:
+          memory: "64Gi"
+          cpu: "4"
+          amd.com/gpu: "1"
+    minReplicas: 1
+    maxReplicas: 3
+EOF
+
+# Apply the scalable inference service
+kubectl apply -f aim-qwen3-32b-scalable.yaml
 # Wait for scalable service to start
 kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
 # For remote access: Set up SSH port forwarding first (on local machine)
