@@ -11,12 +11,57 @@ echo "=== Checking LGTM/Grafana pod status ==="
 LGTM_POD=$(kubectl get pods -n $NAMESPACE 2>/dev/null | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
 
 if [ -z "$LGTM_POD" ]; then
-  echo "No LGTM/Grafana pod found. Checking if observability stack is installed..."
-  kubectl get pods -n $NAMESPACE
-  echo ""
-  echo "If no pods are found, the observability stack may not be installed."
-  echo "Please install it first using: bash ./install-deps.sh --enable=full"
-  exit 1
+  echo "No LGTM/Grafana pod found. Checking if deployment exists..."
+  LGTM_DEPLOYMENT=$(kubectl get deployment -n $NAMESPACE 2>/dev/null | grep lgtm | awk '{print $1}' | head -1)
+  
+  if [ -z "$LGTM_DEPLOYMENT" ]; then
+    echo "LGTM deployment is missing. Attempting to recreate it..."
+    
+    # Check if observability stack YAML exists
+    LGTM_YAML_DIR="$HOME/aim-deploy/kserve/kserve-install/post-helm/base/otel-lgtm-stack-standalone"
+    if [ ! -d "$LGTM_YAML_DIR" ]; then
+      echo "Error: LGTM stack YAML directory not found at $LGTM_YAML_DIR"
+      echo "Please ensure the observability stack is installed using: bash ./install-deps.sh --enable=full"
+      exit 1
+    fi
+    
+    # Check if local-path storage class exists
+    LOCAL_PATH_EXISTS=$(kubectl get storageclass local-path 2>/dev/null | grep -c local-path || echo "0")
+    if [ "$LOCAL_PATH_EXISTS" = "0" ]; then
+      echo "local-path storage class not found. Installing it first..."
+      kubectl apply -f $LOCAL_PATH_PROVISIONER_URL
+      kubectl wait --for=condition=ready pod -n local-path-storage -l app=local-path-provisioner --timeout=60s 2>/dev/null || true
+      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' 2>/dev/null || true
+    fi
+    
+    # Recreate deployment with local-path storage class
+    echo "Recreating LGTM deployment with local-path storage class..."
+    cd "$LGTM_YAML_DIR"
+    sed 's/storageClassName: default/storageClassName: local-path/g' otel-lgtm.yaml | kubectl apply -f - 2>/dev/null || {
+      echo "Failed to apply LGTM YAML. Trying with kustomize..."
+      kubectl apply -k . 2>/dev/null || {
+        echo "Failed to recreate deployment. Please check manually."
+        exit 1
+      }
+    }
+    
+    echo "Waiting for deployment to create pods..."
+    sleep 10
+    LGTM_POD=$(kubectl get pods -n $NAMESPACE 2>/dev/null | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
+    
+    if [ -z "$LGTM_POD" ]; then
+      echo "Deployment created but no pod found yet. Checking deployment status..."
+      kubectl get deployment -n $NAMESPACE | grep lgtm
+      echo "Please wait a moment and run this script again, or check manually: kubectl get pods -n $NAMESPACE"
+      exit 1
+    fi
+  else
+    echo "Deployment $LGTM_DEPLOYMENT exists but no pods found. Checking deployment status..."
+    kubectl describe deployment -n $NAMESPACE $LGTM_DEPLOYMENT | grep -A 10 "Events:" || true
+    echo ""
+    echo "If deployment is stuck, you may need to check events or recreate it."
+    exit 1
+  fi
 fi
 
 echo "Found pod: $LGTM_POD"
@@ -91,6 +136,23 @@ if [ "$POD_STATUS" = "Pending" ]; then
       if [ ! -z "$LGTM_DEPLOYMENT" ]; then
         echo "Deleting deployment $LGTM_DEPLOYMENT to force recreation..."
         kubectl delete deployment -n $NAMESPACE $LGTM_DEPLOYMENT 2>/dev/null || true
+      fi
+      
+      echo "Waiting 10 seconds for resources to be cleaned up..."
+      sleep 10
+      
+      # Recreate deployment with local-path storage class
+      echo "Recreating LGTM deployment with local-path storage class..."
+      LGTM_YAML_DIR="$HOME/aim-deploy/kserve/kserve-install/post-helm/base/otel-lgtm-stack-standalone"
+      if [ -d "$LGTM_YAML_DIR" ]; then
+        cd "$LGTM_YAML_DIR"
+        # Use sed to replace default with local-path in the YAML
+        sed 's/storageClassName: default/storageClassName: local-path/g' otel-lgtm.yaml | kubectl apply -f - 2>/dev/null || {
+          echo "Warning: Failed to apply with storage class replacement, trying original YAML..."
+          kubectl apply -k . 2>/dev/null || true
+        }
+      else
+        echo "Warning: LGTM YAML directory not found. Deployment may need to be recreated manually."
       fi
       
       echo "Waiting 10 seconds for resources to be recreated..."

@@ -136,6 +136,37 @@ curl -X POST http://localhost:8000/v1/chat/completions \
      jq -r '.choices[0].delta.content // empty' | \
      tr -d '\n' && echo
 
+# Example queries to try:
+# Explain quantum computing in simple terms:
+curl -X POST http://localhost:8000/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Write a Python function to calculate fibonacci numbers:
+curl -X POST http://localhost:8000/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Write a Python function to calculate fibonacci numbers"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Multi-turn conversation:
+curl -X POST http://localhost:8000/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "What is Kubernetes?"}, {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform..."}, {"role": "user", "content": "How does it compare to Docker Swarm?"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
 # 4.5. Deploy scalable service for metrics (optional)
 # Get node name(s):
 kubectl get nodes
@@ -205,6 +236,37 @@ cd ~/aim-deploy/kserve/kserve-install
 curl -X POST http://localhost:8080/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Example queries to try:
+# Explain quantum computing in simple terms:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Write a Python function to calculate fibonacci numbers:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Write a Python function to calculate fibonacci numbers"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Multi-turn conversation:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "What is Kubernetes?"}, {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform..."}, {"role": "user", "content": "How does it compare to Docker Swarm?"}], "stream": true}' \
      --no-buffer | \
      sed 's/^data: //' | \
      grep -v '^\[DONE\]$' | \
@@ -330,6 +392,37 @@ kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
 curl -X POST http://localhost:8080/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Example queries to try:
+# Explain quantum computing in simple terms:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Write a Python function to calculate fibonacci numbers:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Write a Python function to calculate fibonacci numbers"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Multi-turn conversation:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "What is Kubernetes?"}, {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform..."}, {"role": "user", "content": "How does it compare to Docker Swarm?"}], "stream": true}' \
      --no-buffer | \
      sed 's/^data: //' | \
      grep -v '^\[DONE\]$' | \
