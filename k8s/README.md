@@ -102,8 +102,26 @@ kubectl get inferenceservice aim-qwen3-32b
 # Wait until READY column shows "True" (may take 5-10 minutes for model to load)
 # Or watch the status: kubectl get inferenceservice aim-qwen3-32b -w
 
+# Monitor pod events to track image pulling progress:
+# Get pod name and monitor events (one-liner):
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' | tail -20
+# Or monitor events in real-time:
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' -w
+# Note: Large model images (32B) can take 15-30+ minutes to pull. Wait for "Pulled" or "Started" events.
+
 # 4. Test the service
+# First, verify the service exists: kubectl get svc aim-qwen3-32b-predictor
+# If not found, check InferenceService: kubectl get inferenceservice aim-qwen3-32b
+# For remote access: Set up SSH port forwarding first (on local machine)
+# ssh -L 8000:localhost:8000 user@remote-mi300x-node
+# Keep SSH session open!
+
+# Port forward AIM service (on remote node)
 kubectl port-forward service/aim-qwen3-32b-predictor 8000:80
+# Keep this terminal open!
+# Note: If you get "service not found", you may have already deleted it in Step 4.5. Use scalable service instead.
+
+# In another terminal (or if using SSH, on your local machine):
 curl -X POST http://localhost:8000/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
@@ -112,6 +130,111 @@ curl -X POST http://localhost:8000/v1/chat/completions \
      grep -v '^\[DONE\]$' | \
      jq -r '.choices[0].delta.content // empty' | \
      tr -d '\n' && echo
+
+# 4.5. Deploy scalable service for metrics (optional)
+# Check GPU availability: kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
+# If single GPU: Stop basic service first: kubectl delete inferenceservice aim-qwen3-32b
+# If multiple GPUs (e.g., 8x MI300X): Skip stopping basic service, deploy scalable service alongside it
+# Wait for scalable service to start: kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
+# Test scalable service (port 8080)
+# For remote access: ssh -L 8080:localhost:8080 user@remote-mi300x-node (or add to existing SSH)
+kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
+# Test: curl -X POST http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' --no-buffer | sed 's/^data: //' | grep -v '^\[DONE\]$' | jq -r '.choices[0].delta.content // empty' | tr -d '\n' && echo
+
+# 5. Deploy monitored inference service with autoscaling (optional - requires observability setup)
+# Note: If you completed Step 4.5, the scalable service is already deployed. You can skip to Step 6.
+# Check if serving runtime from step 3 is already applied
+kubectl get clusterservingruntime aim-qwen3-32b-runtime
+# If not found, apply it (from the sample-minimal-aims-deployment directory)
+cd ../sample-minimal-aims-deployment
+kubectl apply -f servingruntime-aim-qwen3-32b.yaml
+cd ../kserve-install
+
+# Create the monitored inference service manifest
+cat <<'EOF' > aim-qwen3-32b-scalable.yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: aim-qwen3-32b-scalable
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+    serving.kserve.io/autoscalerClass: "keda"
+    sidecar.opentelemetry.io/inject: "otel-lgtm-stack/vllm-sidecar-collector"
+spec:
+  predictor:
+    model:
+      runtime: aim-qwen3-32b-runtime
+      modelFormat:
+        name: aim-qwen3-32b
+      env:
+        - name: VLLM_ENABLE_METRICS
+          value: "true"
+      resources:
+        limits:
+          memory: "128Gi"
+          cpu: "8"
+          amd.com/gpu: "1"
+        requests:
+          memory: "64Gi"
+          cpu: "4"
+          amd.com/gpu: "1"
+    minReplicas: 1
+    maxReplicas: 3
+    autoScaling:
+      metrics:
+        - type: External
+          external:
+            metric:
+              backend: "prometheus"
+              serverAddress: "http://lgtm-stack.otel-lgtm-stack.svc:9090"
+              query: 'sum(vllm:num_requests_running{service="isvc.aim-qwen3-32b-scalable-predictor"})'
+            target:
+              type: Value
+              value: "1"
+EOF
+
+# Apply the monitored inference service
+kubectl apply -f aim-qwen3-32b-scalable.yaml
+
+# 6. Access Grafana dashboard (optional - requires observability setup)
+# First, verify LGTM/Grafana pod is Running and Ready
+kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
+# If no pods found, verify observability stack is installed: kubectl get pods -n otel-lgtm-stack
+# If pod is Pending (e.g., 0/2 Pending), wait for it: LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1) && kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
+
+# For remote access: Set up SSH port forwarding first (on local machine)
+# ssh -L 3000:localhost:3000 user@remote-mi300x-node
+# Keep SSH session open!
+
+# Port forward Grafana service (on remote node)
+kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
+# Keep this terminal open!
+
+# Open http://localhost:3000 in browser (on local machine if remote, or on remote node if local)
+# Default credentials: admin/admin
+
+# 7. Generate inference requests to view metrics and autoscaling (optional)
+# For remote access: Set up SSH port forwarding for port 8080 (on local machine)
+# ssh -L 8080:localhost:8080 user@remote-mi300x-node
+# Or add to existing SSH: ssh -L 8000:localhost:8000 -L 3000:localhost:3000 -L 8080:localhost:8080 user@remote-mi300x-node
+# Keep SSH session open!
+
+# Port-forward the scalable service (on remote node)
+kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
+# Keep this terminal open!
+
+# In a new terminal (or if using SSH, on your local machine), send inference requests
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
+
+# Monitor autoscaling
+kubectl get deployment aim-qwen3-32b-scalable-predictor-00001-deployment -w
 ```
 
 For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
