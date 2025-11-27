@@ -430,7 +430,13 @@ curl -X POST http://localhost:8080/v1/chat/completions \
      tr -d '\n' && echo
 
 # Monitor autoscaling
-kubectl get deployment aim-qwen3-32b-scalable-predictor-00001-deployment -w
+# Get the deployment name (KServe may add a revision suffix like -00001-deployment):
+SCALABLE_DEPLOYMENT=$(kubectl get deployment -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ ! -z "$SCALABLE_DEPLOYMENT" ]; then
+  kubectl get deployment $SCALABLE_DEPLOYMENT -w
+else
+  echo "Scalable deployment not found. List all deployments: kubectl get deployment | grep aim-qwen3-32b-scalable"
+fi
 ```
 
 For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
