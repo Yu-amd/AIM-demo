@@ -378,6 +378,27 @@ kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
 # Open http://localhost:3000 in browser (on local machine if remote, or on remote node if local)
 # Default credentials: admin/admin
 
+# What to monitor in Grafana:
+# 1. Navigate to Dashboards (left menu) > Browse
+# 2. Look for vLLM or AIM dashboards (if pre-configured)
+# 3. Key metrics to monitor:
+#    - Request rate: Number of requests per second
+#    - Request latency: P50, P95, P99 latencies
+#    - Tokens per second: Generation throughput
+#    - Active requests: Currently processing requests
+#    - GPU utilization: GPU usage percentage
+#    - Memory usage: Pod memory consumption
+#    - Pod replicas: Number of running pods (autoscaling)
+# 4. Create custom queries in Explore:
+#    - vLLM metrics: vllm:num_requests_running, vllm:request_latency_seconds
+#    - Pod metrics: container_memory_usage_bytes, container_cpu_usage_seconds_total
+#    - Kubernetes metrics: kube_deployment_status_replicas
+# 5. Set up alerts for:
+#    - High latency (P95 > threshold)
+#    - Low GPU utilization
+#    - Pod failures or restarts
+#    - High error rates
+
 # 7. Generate inference requests to view metrics and autoscaling (optional)
 # For remote access: Set up SSH port forwarding for port 8080 (on local machine)
 # ssh -L 8080:localhost:8080 user@remote-mi300x-node
@@ -437,6 +458,12 @@ if [ ! -z "$SCALABLE_DEPLOYMENT" ]; then
 else
   echo "Scalable deployment not found. List all deployments: kubectl get deployment | grep aim-qwen3-32b-scalable"
 fi
+# Watch for changes in:
+# - READY: Number of ready replicas (should scale up/down based on load)
+# - UP-TO-DATE: Replicas updated to latest version
+# - AVAILABLE: Replicas available to serve requests
+# As you send inference requests, you should see replicas scale up (1 -> 2 -> 3) based on the autoscaling metrics
+# In Grafana, monitor: kube_deployment_status_replicas{deployment="aim-qwen3-32b-scalable-predictor"} to see replica count over time
 ```
 
 For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
