@@ -328,6 +328,20 @@ EOF
 # Apply the monitored inference service
 kubectl apply -f aim-qwen3-32b-scalable.yaml
 
+# Verify autoscaling is configured (wait a few seconds for KServe to create resources):
+sleep 10
+# Check if ScaledObject was created (KEDA autoscaling):
+kubectl get scaledobject | grep aim-qwen3-32b-scalable
+# Check if HPA exists (should be created by KEDA):
+kubectl get hpa | grep aim-qwen3-32b-scalable
+
+# Troubleshooting: If ScaledObject is not created and you see HPA conflicts:
+# If you see errors about "already managed by the hpa", delete the conflicting HPA:
+# kubectl delete hpa aim-qwen3-32b-scalable-predictor
+# Then delete and recreate the InferenceService:
+# kubectl delete inferenceservice aim-qwen3-32b-scalable
+# kubectl apply -f aim-qwen3-32b-scalable.yaml
+
 # 6. Access Grafana dashboard (optional - requires observability setup)
 # First, verify LGTM/Grafana pod is Running and Ready
 # Automated fix (recommended): Run the script to automatically diagnose and fix storage issues
@@ -468,20 +482,38 @@ curl -X POST http://localhost:8080/v1/chat/completions \
      jq -r '.choices[0].delta.content // empty' | \
      tr -d '\n' && echo
 
-# Monitor autoscaling
-# Get the deployment name (KServe may add a revision suffix like -00001-deployment):
+# Monitor autoscaling status and metrics
+# Quick status check (recommended):
+bash ~/AIM-demo/k8s/scripts/check-autoscaling.sh
+
+# Or check manually:
+# 1. Check ScaledObject status:
+kubectl describe scaledobject aim-qwen3-32b-scalable-predictor | grep -A 10 "Status:"
+# 2. Check HPA status (created by KEDA):
+kubectl get hpa keda-hpa-aim-qwen3-32b-scalable-predictor
+# 3. Watch deployment replicas in real-time:
 SCALABLE_DEPLOYMENT=$(kubectl get deployment -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 if [ ! -z "$SCALABLE_DEPLOYMENT" ]; then
   kubectl get deployment $SCALABLE_DEPLOYMENT -w
 else
   echo "Scalable deployment not found. List all deployments: kubectl get deployment | grep aim-qwen3-32b-scalable"
 fi
-# Watch for changes in:
+
+# What to watch for:
 # - READY: Number of ready replicas (should scale up/down based on load)
 # - UP-TO-DATE: Replicas updated to latest version
 # - AVAILABLE: Replicas available to serve requests
-# As you send inference requests, you should see replicas scale up (1 -> 2 -> 3) based on the autoscaling metrics
+# - HPA TARGETS: Shows current metric value vs target (e.g., "2/1 (avg)" means 2 running requests, target is 1, will scale up)
+# As you send concurrent inference requests, you should see:
+#   - HPA TARGETS increase (0/1 -> 1/1 -> 2/1 -> 3/1)
+#   - Replicas scale up (1 -> 2 -> 3) when metric exceeds target
+#   - Replicas scale down when load decreases
 # In Grafana, monitor: kube_deployment_status_replicas{deployment="aim-qwen3-32b-scalable-predictor"} to see replica count over time
+
+# Note: Single node with multiple GPUs is fine for autoscaling
+# - Autoscaling scales pods (replicas), not nodes
+# - With 8 GPUs on one node, you can run up to 8 pods simultaneously
+# - All pods can run on the same node if resources allow
 ```
 
 For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
