@@ -269,8 +269,10 @@ kubectl apply -f aim-qwen3-32b-scalable.yaml
 # 6. Access Grafana dashboard (optional - requires observability setup)
 # First, verify LGTM/Grafana pod is Running and Ready
 kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
-# If no pods found, verify observability stack is installed: kubectl get pods -n otel-lgtm-stack
-# If pod is Pending (e.g., 0/2 Pending), wait for it: LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1) && kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
+# If no pods found, verify observability stack is installed:
+kubectl get pods -n otel-lgtm-stack
+# If pod is Pending (e.g., 0/2 Pending), wait for it:
+LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1) && kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
 
 # For remote access: Set up SSH port forwarding first (on local machine)
 # ssh -L 3000:localhost:3000 user@remote-mi300x-node
