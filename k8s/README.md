@@ -176,6 +176,14 @@ EOF
 # Apply the scalable inference service
 kubectl apply -f aim-qwen3-32b-scalable.yaml
 # Wait for scalable service to start
+# Monitor status in real-time (run in another terminal):
+# Watch InferenceService status:
+kubectl get inferenceservice aim-qwen3-32b-scalable -w
+# Or check pod events to track image pulling and startup progress:
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' -w
+# Or check pod status:
+kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -w
+# Wait for scalable service to be ready (this may take 15-30+ minutes for large model images):
 kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
 # For remote access: Set up SSH port forwarding first (on local machine)
 ssh -L 8080:localhost:8080 user@remote-mi300x-node
