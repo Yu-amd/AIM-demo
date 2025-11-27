@@ -271,7 +271,25 @@ kubectl apply -f aim-qwen3-32b-scalable.yaml
 kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
 # If no pods found, verify observability stack is installed:
 kubectl get pods -n otel-lgtm-stack
-# If pod is Pending (e.g., 0/2 Pending), wait for it:
+# If pod is Pending (e.g., 0/2 Pending), check why:
+LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
+kubectl describe pod -n otel-lgtm-stack $LGTM_POD | grep -A 10 "Events:"
+# If you see "pod has unbound immediate PersistentVolumeClaims", this is a storage class issue
+# Check PVC status:
+kubectl get pvc -n otel-lgtm-stack
+# If PVCs are Pending, check storage class:
+kubectl get storageclass
+# If storage class uses "kubernetes.io/no-provisioner" (like local-storage), install local-path-provisioner:
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.24/deploy/local-path-storage.yaml
+kubectl wait --for=condition=ready pod -n local-path-storage -l app=local-path-provisioner --timeout=60s
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+kubectl patch storageclass local-storage -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+kubectl delete pvc -n otel-lgtm-stack --all
+LGTM_DEPLOYMENT=$(kubectl get deployment -n otel-lgtm-stack | grep lgtm | awk '{print $1}' | head -1)
+if [ ! -z "$LGTM_DEPLOYMENT" ]; then kubectl delete deployment -n otel-lgtm-stack $LGTM_DEPLOYMENT; fi
+sleep 10
+kubectl get pvc -n otel-lgtm-stack
+# Wait for pod to be ready after storage is fixed:
 LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1) && kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
 
 # For remote access: Set up SSH port forwarding first (on local machine)
