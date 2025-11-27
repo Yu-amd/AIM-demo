@@ -437,9 +437,16 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 # To trigger autoscaling (scale up), send multiple concurrent requests:
 # The autoscaling metric is vllm:num_requests_running with target value of 1
 # When running requests exceed 1, it will scale up replicas
-# IMPORTANT: Use NON-STREAMING requests for testing (stream: false) as they take longer and metrics update better
-# Automated test script (recommended):
-bash ~/AIM-demo/k8s/scripts/test-autoscaling.sh
+# IMPORTANT: 
+#   - Prometheus scrape interval is 60 seconds, so metrics update slowly
+#   - Need MANY concurrent requests (20+) to ensure some are active when Prometheus scrapes
+#   - Use NON-STREAMING requests (stream: false) for better metric visibility
+# Automated scripts to trigger autoscaling:
+# Option 1: Continuous requests (RECOMMENDED - keeps requests active during scrape):
+bash ~/AIM-demo/k8s/scripts/trigger-autoscaling-continuous.sh
+# Option 2: Burst of concurrent requests (may complete before Prometheus scrapes):
+bash ~/AIM-demo/k8s/scripts/trigger-autoscaling-sustained.sh
+# Or specify number: bash ~/AIM-demo/k8s/scripts/trigger-autoscaling-sustained.sh 30
 
 # Or send concurrent requests manually:
 # Send 5 concurrent NON-STREAMING requests (these take longer and show up in metrics better):
