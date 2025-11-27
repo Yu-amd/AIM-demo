@@ -132,14 +132,28 @@ curl -X POST http://localhost:8000/v1/chat/completions \
      tr -d '\n' && echo
 
 # 4.5. Deploy scalable service for metrics (optional)
-# Check GPU availability: kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
-# If single GPU: Stop basic service first: kubectl delete inferenceservice aim-qwen3-32b
-# If multiple GPUs (e.g., 8x MI300X): Skip stopping basic service, deploy scalable service alongside it
-# Wait for scalable service to start: kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
-# Test scalable service (port 8080)
-# For remote access: ssh -L 8080:localhost:8080 user@remote-mi300x-node (or add to existing SSH)
+# Check GPU availability (replace <node-name> with your node name):
+kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
+# If single GPU: Stop basic service first (skip this command if you have multiple GPUs)
+kubectl delete inferenceservice aim-qwen3-32b
+# If multiple GPUs (e.g., 8x MI300X): Skip the delete command above, deploy scalable service alongside it
+# Wait for scalable service to start
+kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
+# For remote access: Set up SSH port forwarding first (on local machine)
+ssh -L 8080:localhost:8080 user@remote-mi300x-node
+# Keep SSH session open!
+# Port forward scalable service (on remote node)
 kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
-# Test: curl -X POST http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' --no-buffer | sed 's/^data: //' | grep -v '^\[DONE\]$' | jq -r '.choices[0].delta.content // empty' | tr -d '\n' && echo
+# Keep this terminal open!
+# In another terminal (or if using SSH, on your local machine), test the service:
+curl -X POST http://localhost:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
+     --no-buffer | \
+     sed 's/^data: //' | \
+     grep -v '^\[DONE\]$' | \
+     jq -r '.choices[0].delta.content // empty' | \
+     tr -d '\n' && echo
 
 # 5. Deploy monitored inference service with autoscaling (optional - requires observability setup)
 # Note: If you completed Step 4.5, the scalable service is already deployed. You can skip to Step 6.
