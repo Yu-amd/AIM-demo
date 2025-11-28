@@ -97,196 +97,46 @@ cd ../sample-minimal-aims-deployment
 kubectl apply -f servingruntime-aim-qwen3-32b.yaml
 kubectl apply -f aim-qwen3-32b.yaml
 
-# 3.5. Check model endpoint status and wait for ready
-kubectl get inferenceservice aim-qwen3-32b
-# Wait until READY column shows "True" (may take 5-10 minutes for model to load)
-# Or watch the status: kubectl get inferenceservice aim-qwen3-32b -w
+# 4. Wait for service to be ready (choose one monitoring option):
+# Option A: Watch status (recommended for first-time setup)
+bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b watch
 
-# Monitor pod events to track image pulling progress:
-# Get pod name and monitor events (one-liner):
-POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' | tail -20
-# Or monitor model loading progress in real-time:
-POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl logs $POD_NAME -c kserve-container -f
+# Option B: Monitor pod events (shows image pulling, container starts)
+bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 events
 
-# 4. Test the service
-# First, verify the service exists
-kubectl get svc aim-qwen3-32b-predictor
-# If not found, check InferenceService
-kubectl get inferenceservice aim-qwen3-32b
-# For remote access: Set up SSH port forwarding first (on local machine)
-ssh -L 8000:localhost:8000 user@remote-mi300x-node
-# Keep SSH session open!
+# Option C: Monitor model loading logs (shows download, checkpoint loading, compilation)
+bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 logs
 
-# Port forward AIM service (on remote node)
-kubectl port-forward service/aim-qwen3-32b-predictor 8000:80
-# Keep this terminal open!
-# Note: If you get "service not found", you may have already deleted it in Step 4.5. Use scalable service instead.
+# Option D: Wait silently with timeout (for automation)
+bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 wait
 
-# Open a new terminal (or if using SSH, use your local machine terminal):
-# If using SSH: The port forwarding is already set up via SSH, so you can run curl directly on your local machine
-# If working directly on the node: Open a new terminal on the same node (you'll start in /root)
-# Navigate to the deployment directory (or any directory - curl works from anywhere):
-cd ~/aim-deploy/kserve/kserve-install
-# Make sure the port-forward command above is still running in the previous terminal
-curl -X POST http://localhost:8000/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
+# 5. Set up port forwarding (run in a separate terminal, keep it open):
+# For remote access: First set up SSH port forwarding on your local machine:
+#   ssh -L 8000:localhost:8000 user@remote-mi300x-node
 
-# Example queries to try:
-# Explain quantum computing in simple terms:
-curl -X POST http://localhost:8000/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
+# Then on the remote node, run:
+bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b 8000
 
-# Write a Python function to calculate fibonacci numbers:
-curl -X POST http://localhost:8000/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Write a Python function to calculate fibonacci numbers"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
+# 6. Test the service (in another terminal):
+bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
 
-# Multi-turn conversation:
-curl -X POST http://localhost:8000/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "What is Kubernetes?"}, {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform..."}, {"role": "user", "content": "How does it compare to Docker Swarm?"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
+# 7. Deploy scalable service for metrics and autoscaling (optional):
+# This script handles GPU checking, service deletion if needed, and deployment
+bash ~/AIM-demo/k8s/scripts/deploy-scalable-service.sh
 
-# 4.5. Deploy scalable service for metrics (optional)
-# Get node name(s):
-kubectl get nodes
-# Check GPU availability (replace <node-name> with the actual node name from the command above):
-kubectl describe node <node-name> | grep -A 5 "amd.com/gpu"
-# If single GPU: Stop basic service first (skip this command if you have multiple GPUs)
-kubectl delete inferenceservice aim-qwen3-32b
-# If multiple GPUs (e.g., 8x MI300X): Skip the delete command above, deploy scalable service alongside it
-# Check if serving runtime from step 3 is already applied
-kubectl get clusterservingruntime aim-qwen3-32b-runtime
-# If not found, apply it (from the sample-minimal-aims-deployment directory)
-cd ../sample-minimal-aims-deployment
-kubectl apply -f servingruntime-aim-qwen3-32b.yaml
-cd ../kserve-install
+# After deployment, wait for scalable service:
+bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable watch
 
-# Create the scalable inference service manifest
-cat <<'EOF' > aim-qwen3-32b-scalable.yaml
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
-metadata:
-  name: aim-qwen3-32b-scalable
-  annotations:
-    serving.kserve.io/deploymentMode: RawDeployment
-    serving.kserve.io/enable-prometheus-scraping: "true"
-    prometheus.io/scrape: "true"
-    prometheus.io/path: "/metrics"
-    prometheus.io/port: "8000"
-spec:
-  predictor:
-    model:
-      runtime: aim-qwen3-32b-runtime
-      modelFormat:
-        name: aim-qwen3-32b
-      resources:
-        limits:
-          memory: "128Gi"
-          cpu: "8"
-          amd.com/gpu: "1"
-        requests:
-          memory: "64Gi"
-          cpu: "4"
-          amd.com/gpu: "1"
-    minReplicas: 1
-    maxReplicas: 3
-EOF
+# Set up port forwarding for scalable service (port 8080):
+bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
 
-# Apply the scalable inference service
-kubectl apply -f aim-qwen3-32b-scalable.yaml
-# Wait for scalable service to start
-# Monitor status in real-time (run in another terminal):
-# Watch InferenceService status:
-kubectl get inferenceservice aim-qwen3-32b-scalable -w
+# Test scalable service:
+bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
+```
 
-# Or check pod events to track image pulling and startup progress:
-POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' -w
+**Note:** All scripts are located in `~/AIM-demo/k8s/scripts/`. For manual commands and detailed explanations, see the [Deployment Steps](#deployment-steps) section below.
 
-# Or check pod status:
-kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -w
-# Or monitor model loading progress via logs (shows model download, checkpoint loading, kernel compilation):
-POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl logs $POD_NAME -c kserve-container -f
-# Wait for scalable service to be ready (this may take 15-30+ minutes for large model images):
-kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
-
-# For remote access: Set up SSH port forwarding first (on local machine)
-ssh -L 8080:localhost:8080 user@remote-mi300x-node
-# Keep SSH session open!
-
-# Port forward scalable service (on remote node)
-kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
-# Keep this terminal open!
-
-# Open a new terminal (or if using SSH, use your local machine terminal):
-# If using SSH: The port forwarding is already set up via SSH, so you can run curl directly on your local machine
-# If working directly on the node: Open a new terminal on the same node (you'll start in /root)
-# Navigate to the deployment directory (or any directory - curl works from anywhere):
-cd ~/aim-deploy/kserve/kserve-install
-
-# Make sure the port-forward command above is still running in the previous terminal
-curl -X POST http://localhost:8080/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
-
-# Example queries to try:
-# Explain quantum computing in simple terms:
-curl -X POST http://localhost:8080/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
-
-# Write a Python function to calculate fibonacci numbers:
-curl -X POST http://localhost:8080/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "Write a Python function to calculate fibonacci numbers"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
-
-# Multi-turn conversation:
-curl -X POST http://localhost:8080/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{"messages": [{"role": "user", "content": "What is Kubernetes?"}, {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform..."}, {"role": "user", "content": "How does it compare to Docker Swarm?"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
-
-# 5. Deploy monitored inference service with autoscaling (optional - requires observability setup)
+For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
 # Note: If you completed Step 4.5, the scalable service is already deployed. You can skip to Step 6.
 # Check if serving runtime from step 3 is already applied
 kubectl get clusterservingruntime aim-qwen3-32b-runtime
