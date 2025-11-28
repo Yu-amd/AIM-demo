@@ -132,6 +132,31 @@ bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
 
 # Test scalable service:
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
+
+# 8. Access Grafana dashboard (optional - requires observability setup):
+# First, verify Grafana is running:
+kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
+
+# If pod is not ready, fix storage issues (if needed):
+bash ~/AIM-demo/k8s/scripts/fix-lgtm-storage.sh
+
+# Set up port forwarding for Grafana (run in a separate terminal, keep it open):
+# For remote access: First set up SSH port forwarding on your local machine:
+#   ssh -L 3000:localhost:3000 user@remote-mi300x-node
+
+# Then on the remote node, port forward Grafana:
+kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
+
+# Access Grafana in your browser: http://localhost:3000
+# Default credentials: admin/admin (change on first login)
+# 
+# To view vLLM metrics in Grafana:
+# 1. Go to Explore (compass icon)
+# 2. Select "Prometheus" as data source
+# 3. Try queries like: vllm:num_requests_running
+# 
+# Verify metrics are being collected:
+bash ~/AIM-demo/k8s/scripts/check-grafana-metrics.sh
 ```
 
 **Note:** All scripts are located in `~/AIM-demo/k8s/scripts/`. For manual commands and detailed explanations, see the [Deployment Steps](#deployment-steps) section below.
