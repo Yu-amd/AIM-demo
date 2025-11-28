@@ -47,22 +47,26 @@ if ! curl -s --max-time 2 "$BASE_URL/health" > /dev/null 2>&1; then
     fi
 fi
 
-# Test function
+# Test function with real-time streaming
 test_query() {
     local prompt="$1"
     local description="$2"
     
     echo "Query: $description"
     echo "Prompt: $prompt"
-    echo "Response:"
+    echo -n "Response: "
+    
+    # Stream response in real-time with unbuffered output
+    # -N flag disables curl buffering, stdbuf ensures line-buffered output
     curl -X POST "${BASE_URL}/v1/chat/completions" \
          -H "Content-Type: application/json" \
          -d "{\"messages\": [{\"role\": \"user\", \"content\": \"$prompt\"}], \"stream\": true}" \
-         --no-buffer 2>/dev/null | \
-         sed 's/^data: //' | \
-         grep -v '^\[DONE\]$' | \
-         jq -r '.choices[0].delta.content // empty' 2>/dev/null | \
-         tr -d '\n' && echo ""
+         --no-buffer -N -s 2>/dev/null | \
+         stdbuf -oL sed 's/^data: //' | \
+         stdbuf -oL grep -v '^\[DONE\]$' | \
+         stdbuf -oL jq -r --unbuffered '.choices[0].delta.content // empty' 2>/dev/null
+    
+    echo ""
     echo ""
 }
 
@@ -84,5 +88,4 @@ echo "To test more queries, you can use:"
 echo "  curl -X POST $BASE_URL/v1/chat/completions \\"
 echo "       -H 'Content-Type: application/json' \\"
 echo "       -d '{\"messages\": [{\"role\": \"user\", \"content\": \"Your question here\"}], \"stream\": true}' \\"
-echo "       --no-buffer | sed 's/^data: //' | grep -v '^\[DONE\]$' | jq -r '.choices[0].delta.content // empty' | tr -d '\\n' && echo"
-
+echo "       --no-buffer -N -s | stdbuf -oL sed 's/^data: //' | stdbuf -oL grep -v '^\[DONE\]$' | stdbuf -oL jq -r --unbuffered '.choices[0].delta.content // empty'"
