@@ -83,45 +83,46 @@ This script checks all prerequisites automatically and provides a summary. See [
 ## Quick Start
 
 ### Quick Deployment Overview
-
-```bash
 # 1. Clone the AIM deployment repository
+```bash
 git clone https://github.com/amd-enterprise-ai/aim-deploy.git
 cd aim-deploy/kserve/kserve-install
-
+```
 # 2. Install KServe infrastructure with full monitoring and observability
+```bash
 bash ./install-deps.sh --enable=full
-
+```
 # 3. Deploy AIM inference service
+```bash
 cd ../sample-minimal-aims-deployment
 kubectl apply -f servingruntime-aim-qwen3-32b.yaml
 kubectl apply -f aim-qwen3-32b.yaml
-
+```
 # 4. Wait for service to be ready (choose one monitoring option):
+```bash
 # Option A: Watch status (recommended for first-time setup)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b watch
-
 # Option B: Monitor pod events (shows image pulling, container starts)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 events
-
 # Option C: Monitor model loading logs (shows download, checkpoint loading, compilation)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 logs
-
 # Option D: Wait silently with timeout (for automation)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 wait
-
+```
 # 5. Set up port forwarding (run in a separate terminal, keep it open):
+```bash
 # For remote access: First set up SSH port forwarding on your local machine:
-#   ssh -L 8000:localhost:8000 user@remote-mi300x-node
-
+ssh -L 8000:localhost:8000 user@remote-mi300x-node
 # Then on the remote node, run:
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b 8000
-
+```
 # 6. Test the service (in another terminal):
+```bash
 # The script streams responses in real-time so you can see progress immediately
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
-
+```
 # 7. Deploy scalable service for metrics and autoscaling (optional):
+```bash
 # This script handles GPU checking, service deletion if needed, and deployment
 # It automatically configures metrics collection (sidecar + VLLM_ENABLE_METRICS)
 bash ~/AIM-demo/k8s/scripts/deploy-scalable-service.sh
@@ -133,16 +134,18 @@ bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable watch
 kubectl get pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].spec.containers[*].name}' && echo
 
 # If sidecar is missing, fix metrics configuration:
-# bash ~/AIM-demo/k8s/scripts/fix-metrics-config.sh aim-qwen3-32b-scalable
-# kubectl delete pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable
+bash ~/AIM-demo/k8s/scripts/fix-metrics-config.sh aim-qwen3-32b-scalable
+kubectl delete pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable
 
 # Set up port forwarding for scalable service (port 8080):
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
 
 # Test scalable service (responses stream in real-time):
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
+```
 
 # 8. Access Grafana dashboard (optional - requires observability setup):
+```bash
 # First, verify Grafana is running:
 kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
 
@@ -151,7 +154,7 @@ bash ~/AIM-demo/k8s/scripts/fix-lgtm-storage.sh
 
 # Set up port forwarding for Grafana (run in a separate terminal, keep it open):
 # For remote access: First set up SSH port forwarding on your local machine:
-#   ssh -L 3000:localhost:3000 user@remote-mi300x-node
+ssh -L 3000:localhost:3000 user@remote-mi300x-node
 
 # Then on the remote node, port forward Grafana:
 kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
