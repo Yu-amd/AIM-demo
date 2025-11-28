@@ -118,6 +118,7 @@ bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 wait
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b 8000
 
 # 6. Test the service (in another terminal):
+# The script streams responses in real-time so you can see progress immediately
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
 
 # 7. Deploy scalable service for metrics and autoscaling (optional):
@@ -130,7 +131,7 @@ bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable watch
 # Set up port forwarding for scalable service (port 8080):
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
 
-# Test scalable service:
+# Test scalable service (responses stream in real-time):
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
 
 # 8. Access Grafana dashboard (optional - requires observability setup):
@@ -217,17 +218,27 @@ Port forward and test:
 kubectl port-forward service/aim-qwen3-32b-predictor 8000:80
 ```
 
-In another terminal, send a test request:
+In another terminal, test using the provided script (recommended - streams responses in real-time):
+
+```bash
+bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
+```
+
+**Note:** The test script streams responses in real-time, so you'll see the output appear progressively rather than waiting for the complete response. This provides immediate feedback that the service is working.
+
+Alternatively, you can send a test request manually:
 
 ```bash
 curl -X POST http://localhost:8000/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{"messages": [{"role": "user", "content": "Hello"}], "stream": true}' \
-     --no-buffer | \
-     sed 's/^data: //' | \
-     grep -v '^\[DONE\]$' | \
-     jq -r '.choices[0].delta.content // empty' | \
-     tr -d '\n' && echo
+     --no-buffer -N -s | \
+     while IFS= read -r line; do
+         line="${line#data: }"
+         [[ "$line" == "[DONE]" ]] && continue
+         [[ -z "$line" ]] && continue
+         echo "$line" | jq -r '.choices[0].delta.content // empty' 2>/dev/null | tr -d '\n'
+     done && echo
 ```
 
 ## Features
