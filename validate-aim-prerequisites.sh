@@ -627,6 +627,7 @@ if [ "$ALL_PASSED" = true ] && [ "$ALL_CHECKS_PASSED" = true ]; then
     echo ""
     echo "  3. Deploy the AIM container:"
     echo "     docker run -d --name aim-qwen3-32b \\"
+    echo "       -e PYTHONUNBUFFERED=1 \\"
     echo "       --device=/dev/kfd --device=/dev/dri \\"
     echo "       --security-opt seccomp=unconfined \\"
     echo "       --group-add video \\"

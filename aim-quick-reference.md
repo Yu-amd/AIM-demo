@@ -5,6 +5,7 @@
 ### Start AIM Container
 ```bash
 docker run -d --name aim-qwen3-32b \
+  -e PYTHONUNBUFFERED=1 \
   --device=/dev/kfd --device=/dev/dri \
   --security-opt seccomp=unconfined \
   --group-add video \

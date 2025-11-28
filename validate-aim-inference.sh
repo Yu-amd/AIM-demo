@@ -98,6 +98,7 @@ else
     check_failed "CONTAINER_RUNNING"
     print_fix "Container '$CONTAINER_NAME' is not running. Deploy it first:
   docker run -d --name $CONTAINER_NAME \\
+    -e PYTHONUNBUFFERED=1 \\
     --device=/dev/kfd --device=/dev/dri \\
     --security-opt seccomp=unconfined \\
     --group-add video \\
