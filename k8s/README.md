@@ -191,6 +191,10 @@ metadata:
   name: aim-qwen3-32b-scalable
   annotations:
     serving.kserve.io/deploymentMode: RawDeployment
+    serving.kserve.io/enable-prometheus-scraping: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "8000"
 spec:
   predictor:
     model:
@@ -222,10 +226,8 @@ POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-
 
 # Or check pod status:
 kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -w
-
 # Or monitor model loading progress via logs (shows model download, checkpoint loading, kernel compilation):
 POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl logs $POD_NAME -c kserve-container -f
-
 # Wait for scalable service to be ready (this may take 15-30+ minutes for large model images):
 kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
 
@@ -302,6 +304,10 @@ metadata:
   annotations:
     serving.kserve.io/deploymentMode: RawDeployment
     serving.kserve.io/autoscalerClass: "keda"
+    serving.kserve.io/enable-prometheus-scraping: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "8000"
     sidecar.opentelemetry.io/inject: "otel-lgtm-stack/vllm-sidecar-collector"
 spec:
   predictor:
@@ -345,6 +351,13 @@ sleep 10
 kubectl get scaledobject | grep aim-qwen3-32b-scalable
 # Check if HPA exists (should be created by KEDA):
 kubectl get hpa | grep aim-qwen3-32b-scalable
+
+# Troubleshooting: If Grafana isn't showing vLLM metrics:
+# KServe sometimes sets prometheus.io/port to 9091, but vLLM metrics are on port 8000
+# Fix this by running:
+bash ~/AIM-demo/k8s/scripts/fix-prometheus-port.sh
+# Or verify metrics collection status:
+bash ~/AIM-demo/k8s/scripts/check-grafana-metrics.sh
 
 # Troubleshooting: If ScaledObject is not created and you see HPA conflicts:
 # If you see errors about "already managed by the hpa", delete the conflicting HPA:

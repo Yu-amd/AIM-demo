@@ -30,7 +30,30 @@ else
 fi
 
 echo ""
-echo "3. Available vLLM metrics in Prometheus:"
+echo "3. Checking Prometheus scraping configuration:"
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ ! -z "$POD_NAME" ]; then
+  PROM_PORT=$(kubectl get pod $POD_NAME -o jsonpath='{.metadata.annotations.prometheus\.io/port}' 2>/dev/null || echo "")
+  PROM_SCRAPE=$(kubectl get pod $POD_NAME -o jsonpath='{.metadata.annotations.prometheus\.io/scrape}' 2>/dev/null || echo "")
+  
+  if [ "$PROM_PORT" = "8000" ] && [ "$PROM_SCRAPE" = "true" ]; then
+    echo "   ✓ Prometheus scraping enabled (port: $PROM_PORT)"
+  elif [ "$PROM_PORT" = "9091" ]; then
+    echo "   ⚠ Prometheus port is incorrect: $PROM_PORT (should be 8000)"
+    echo "   → Run: bash ~/AIM-demo/k8s/scripts/fix-prometheus-port.sh"
+  elif [ -z "$PROM_SCRAPE" ] || [ "$PROM_SCRAPE" != "true" ]; then
+    echo "   ⚠ Prometheus scraping not enabled"
+    echo "   → Run: bash ~/AIM-demo/k8s/scripts/fix-prometheus-port.sh"
+  else
+    echo "   ⚠ Prometheus port: ${PROM_PORT:-<not set>} (expected: 8000)"
+    echo "   → Run: bash ~/AIM-demo/k8s/scripts/fix-prometheus-port.sh"
+  fi
+else
+  echo "   ⚠ Pod not found - cannot check Prometheus annotations"
+fi
+
+echo ""
+echo "4. Available vLLM metrics in Prometheus:"
 curl -s 'http://localhost:9090/api/v1/label/__name__/values' | jq '.data[] | select(contains("vllm"))' | head -15
 
 kill $PF_PID 2>/dev/null
