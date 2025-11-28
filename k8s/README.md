@@ -110,10 +110,12 @@ POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b 
 # Note: Large model images (32B) can take 15-30+ minutes to pull. Wait for "Pulled" or "Started" events.
 
 # 4. Test the service
-# First, verify the service exists: kubectl get svc aim-qwen3-32b-predictor
-# If not found, check InferenceService: kubectl get inferenceservice aim-qwen3-32b
+# First, verify the service exists
+kubectl get svc aim-qwen3-32b-predictor
+# If not found, check InferenceService
+kubectl get inferenceservice aim-qwen3-32b
 # For remote access: Set up SSH port forwarding first (on local machine)
-# ssh -L 8000:localhost:8000 user@remote-mi300x-node
+ssh -L 8000:localhost:8000 user@remote-mi300x-node
 # Keep SSH session open!
 
 # Port forward AIM service (on remote node)
@@ -337,10 +339,10 @@ kubectl get hpa | grep aim-qwen3-32b-scalable
 
 # Troubleshooting: If ScaledObject is not created and you see HPA conflicts:
 # If you see errors about "already managed by the hpa", delete the conflicting HPA:
-# kubectl delete hpa aim-qwen3-32b-scalable-predictor
+kubectl delete hpa aim-qwen3-32b-scalable-predictor
 # Then delete and recreate the InferenceService:
-# kubectl delete inferenceservice aim-qwen3-32b-scalable
-# kubectl apply -f aim-qwen3-32b-scalable.yaml
+kubectl delete inferenceservice aim-qwen3-32b-scalable
+kubectl apply -f aim-qwen3-32b-scalable.yaml
 
 # 6. Access Grafana dashboard (optional - requires observability setup)
 # First, verify LGTM/Grafana pod is Running and Ready
@@ -348,38 +350,38 @@ kubectl get hpa | grep aim-qwen3-32b-scalable
 bash ~/AIM-demo/k8s/scripts/fix-lgtm-storage.sh
 
 # Manual verification (if you prefer to check manually):
-# kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
+kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
 # If no pods found, verify observability stack is installed:
-# kubectl get pods -n otel-lgtm-stack
+kubectl get pods -n otel-lgtm-stack
 # If pod is Pending (e.g., 0/2 Pending), check why:
-# LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
-# if [ ! -z "$LGTM_POD" ]; then
-#   kubectl describe pod -n otel-lgtm-stack $LGTM_POD | grep -A 10 "Events:"
-# else
-#   echo "No LGTM/Grafana pod found. Check if observability stack is installed: kubectl get pods -n otel-lgtm-stack"
-# fi
+LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
+ if [ ! -z "$LGTM_POD" ]; then
+   kubectl describe pod -n otel-lgtm-stack $LGTM_POD | grep -A 10 "Events:"
+ else
+   echo "No LGTM/Grafana pod found. Check if observability stack is installed: kubectl get pods -n otel-lgtm-stack"
+ fi
 # If you see "pod has unbound immediate PersistentVolumeClaims", this is a storage class issue
 # Check PVC status:
-# kubectl get pvc -n otel-lgtm-stack
+ kubectl get pvc -n otel-lgtm-stack
 # If PVCs are Pending, check storage class:
-# kubectl get storageclass
+kubectl get storageclass
 # If storage class uses "kubernetes.io/no-provisioner" (like local-storage), install local-path-provisioner:
-# kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.24/deploy/local-path-storage.yaml
-# kubectl wait --for=condition=ready pod -n local-path-storage -l app=local-path-provisioner --timeout=60s
-# kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-# kubectl patch storageclass local-storage -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
-# kubectl delete pvc -n otel-lgtm-stack --all
-# LGTM_DEPLOYMENT=$(kubectl get deployment -n otel-lgtm-stack | grep lgtm | awk '{print $1}' | head -1)
-# if [ ! -z "$LGTM_DEPLOYMENT" ]; then kubectl delete deployment -n otel-lgtm-stack $LGTM_DEPLOYMENT; fi
-# sleep 10
-# kubectl get pvc -n otel-lgtm-stack
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.24/deploy/local-path-storage.yaml
+kubectl wait --for=condition=ready pod -n local-path-storage -l app=local-path-provisioner --timeout=60s
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+kubectl patch storageclass local-storage -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+kubectl delete pvc -n otel-lgtm-stack --all
+LGTM_DEPLOYMENT=$(kubectl get deployment -n otel-lgtm-stack | grep lgtm | awk '{print $1}' | head -1)
+ if [ ! -z "$LGTM_DEPLOYMENT" ]; then kubectl delete deployment -n otel-lgtm-stack $LGTM_DEPLOYMENT; fi
+sleep 10
+kubectl get pvc -n otel-lgtm-stack
 # Wait for pod to be ready after storage is fixed:
-# LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
-# if [ ! -z "$LGTM_POD" ]; then
-#   kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
-# else
-#   echo "No LGTM/Grafana pod found. Check if observability stack is installed: kubectl get pods -n otel-lgtm-stack"
-# fi
+LGTM_POD=$(kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana" | awk '{print $1}' | head -1)
+ if [ ! -z "$LGTM_POD" ]; then
+   kubectl wait --for=condition=ready pod -n otel-lgtm-stack $LGTM_POD --timeout=600s
+ else
+   echo "No LGTM/Grafana pod found. Check if observability stack is installed: kubectl get pods -n otel-lgtm-stack"
+ fi
 
 # For remote access: Set up SSH port forwarding first (on local machine)
 ssh -L 3000:localhost:3000 user@remote-mi300x-node
@@ -415,8 +417,9 @@ kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
 
 # 7. Generate inference requests to view metrics and autoscaling (optional)
 # For remote access: Set up SSH port forwarding for port 8080 (on local machine)
-# ssh -L 8080:localhost:8080 user@remote-mi300x-node
-# Or add to existing SSH: ssh -L 8000:localhost:8000 -L 3000:localhost:3000 -L 8080:localhost:8080 user@remote-mi300x-node
+ssh -L 8080:localhost:8080 user@remote-mi300x-node
+# Or add to existing SSH
+ssh -L 8000:localhost:8000 -L 3000:localhost:3000 -L 8080:localhost:8080 user@remote-mi300x-node
 # Keep SSH session open!
 
 # Port-forward the scalable service (on remote node)
@@ -529,15 +532,6 @@ fi
 ```
 
 For detailed step-by-step instructions, see [KUBERNETES-DEPLOYMENT.md](./KUBERNETES-DEPLOYMENT.md).
-
-## Repository Structure
-
-```
-k8s/
-├── KUBERNETES-DEPLOYMENT.md    # Comprehensive deployment guide
-├── kubernetes-quick-reference.md # Quick command reference
-└── README.md                    # This file
-```
 
 ## Deployment Steps
 
@@ -658,6 +652,4 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 
 - [AMD AIM Blog - KServe Deployment](https://rocm.blogs.amd.com/artificial-intelligence/enterprise-ai-aims/README.html) - Official AMD guide
 - [AMD AIM Deployment Repository](https://github.com/amd-enterprise-ai/aim-deploy) - Source code and examples
-- [KServe Documentation](https://kserve.github.io/website/) - KServe framework documentation
-- [KEDA Documentation](https://keda.sh/docs/) - Kubernetes Event-driven Autoscaling
 - [Kubernetes-MI300X](https://github.com/Yu-amd/Kubernetes-MI300X) - Kubernetes cluster setup guide
