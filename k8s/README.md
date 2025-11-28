@@ -105,9 +105,8 @@ kubectl get inferenceservice aim-qwen3-32b
 # Monitor pod events to track image pulling progress:
 # Get pod name and monitor events (one-liner):
 POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' | tail -20
-# Or monitor events in real-time:
-POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' -w
-# Note: Large model images (32B) can take 15-30+ minutes to pull. Wait for "Pulled" or "Started" events.
+# Or monitor model loading progress in real-time:
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b -o jsonpath='{.items[0].metadata.name}') && kubectl logs $POD_NAME -c kserve-container -f
 
 # 4. Test the service
 # First, verify the service exists
