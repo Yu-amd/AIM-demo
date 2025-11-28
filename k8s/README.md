@@ -83,22 +83,22 @@ This script checks all prerequisites automatically and provides a summary. See [
 ## Quick Start
 
 ### Quick Deployment Overview
-### 1. Clone the AIM deployment repository
+#### 1. Clone the AIM deployment repository
 ```bash
 git clone https://github.com/amd-enterprise-ai/aim-deploy.git
 cd aim-deploy/kserve/kserve-install
 ```
-### 2. Install KServe infrastructure with full monitoring and observability
+#### 2. Install KServe infrastructure with full monitoring and observability
 ```bash
 bash ./install-deps.sh --enable=full
 ```
-### 3. Deploy AIM inference service
+#### 3. Deploy AIM inference service
 ```bash
 cd ../sample-minimal-aims-deployment
 kubectl apply -f servingruntime-aim-qwen3-32b.yaml
 kubectl apply -f aim-qwen3-32b.yaml
 ```
-### 4. Wait for service to be ready (choose one monitoring option):
+#### 4. Wait for service to be ready (choose one monitoring option):
 ```bash
 # Option A: Watch status (recommended for first-time setup)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b watch
@@ -109,19 +109,19 @@ bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 logs
 # Option D: Wait silently with timeout (for automation)
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b 600 wait
 ```
-### 5. Set up port forwarding (run in a separate terminal, keep it open):
+#### 5. Set up port forwarding (run in a separate terminal, keep it open):
 ```bash
 # For remote access: First set up SSH port forwarding on your local machine:
 ssh -L 8000:localhost:8000 user@remote-mi300x-node
 # Then on the remote node, run:
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b 8000
 ```
-### 6. Test the service (in another terminal):
+#### 6. Test the service (in another terminal):
 ```bash
 # The script streams responses in real-time so you can see progress immediately
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
 ```
-### 7. Deploy scalable service for metrics and autoscaling (optional):
+#### 7. Deploy scalable service for metrics and autoscaling (optional):
 ```bash
 # This script handles GPU checking, service deletion if needed, and deployment
 # It automatically configures metrics collection (sidecar + VLLM_ENABLE_METRICS)
@@ -144,7 +144,7 @@ bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
 bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
 ```
 
-### 8. Access Grafana dashboard (optional - requires observability setup):
+#### 8. Access Grafana dashboard (optional - requires observability setup):
 ```bash
 # First, verify Grafana is running:
 kubectl get pods -n otel-lgtm-stack | grep -E "lgtm|grafana"
