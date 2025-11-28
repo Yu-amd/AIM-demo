@@ -216,23 +216,33 @@ kubectl apply -f aim-qwen3-32b-scalable.yaml
 # Monitor status in real-time (run in another terminal):
 # Watch InferenceService status:
 kubectl get inferenceservice aim-qwen3-32b-scalable -w
+
 # Or check pod events to track image pulling and startup progress:
 POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl get events --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' -w
+
 # Or check pod status:
 kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -w
+
+# Or monitor model loading progress via logs (shows model download, checkpoint loading, kernel compilation):
+POD_NAME=$(kubectl get pods -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].metadata.name}' 2>/dev/null) && kubectl logs $POD_NAME -c kserve-container -f
+
 # Wait for scalable service to be ready (this may take 15-30+ minutes for large model images):
 kubectl wait --for=condition=ready inferenceservice aim-qwen3-32b-scalable --timeout=600s
+
 # For remote access: Set up SSH port forwarding first (on local machine)
 ssh -L 8080:localhost:8080 user@remote-mi300x-node
 # Keep SSH session open!
+
 # Port forward scalable service (on remote node)
 kubectl port-forward service/aim-qwen3-32b-scalable-predictor 8080:80
 # Keep this terminal open!
+
 # Open a new terminal (or if using SSH, use your local machine terminal):
 # If using SSH: The port forwarding is already set up via SSH, so you can run curl directly on your local machine
 # If working directly on the node: Open a new terminal on the same node (you'll start in /root)
 # Navigate to the deployment directory (or any directory - curl works from anywhere):
 cd ~/aim-deploy/kserve/kserve-install
+
 # Make sure the port-forward command above is still running in the previous terminal
 curl -X POST http://localhost:8080/v1/chat/completions \
      -H "Content-Type: application/json" \
