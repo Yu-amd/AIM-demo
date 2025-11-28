@@ -88,12 +88,16 @@ metadata:
     prometheus.io/scrape: "true"
     prometheus.io/path: "/metrics"
     prometheus.io/port: "8000"
+    sidecar.opentelemetry.io/inject: "otel-lgtm-stack/vllm-sidecar-collector"
 spec:
   predictor:
     model:
       runtime: aim-qwen3-32b-runtime
       modelFormat:
         name: aim-qwen3-32b
+      env:
+        - name: VLLM_ENABLE_METRICS
+          value: "true"
       resources:
         limits:
           memory: "128Gi"
@@ -120,12 +124,20 @@ echo "=== Deployment Complete ==="
 echo ""
 echo "Next steps:"
 echo "  1. Wait for service to be ready:"
-echo "     bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable"
+echo "     bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable watch"
 echo ""
-echo "  2. Set up port forwarding:"
+echo "  2. Verify metrics configuration (the pod should have sidecar container):"
+echo "     kubectl get pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].spec.containers[*].name}'"
+echo "     # Should show: kserve-container vllm-sidecar-collector"
+echo ""
+echo "  3. If sidecar is missing, fix metrics configuration:"
+echo "     bash ~/AIM-demo/k8s/scripts/fix-metrics-config.sh aim-qwen3-32b-scalable"
+echo "     kubectl delete pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable"
+echo ""
+echo "  4. Set up port forwarding:"
 echo "     bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080"
 echo ""
-echo "  3. Test the service:"
+echo "  5. Test the service:"
 echo "     bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080"
 echo ""
 

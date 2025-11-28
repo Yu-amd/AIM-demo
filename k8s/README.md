@@ -123,10 +123,18 @@ bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b 8000
 
 # 7. Deploy scalable service for metrics and autoscaling (optional):
 # This script handles GPU checking, service deletion if needed, and deployment
+# It automatically configures metrics collection (sidecar + VLLM_ENABLE_METRICS)
 bash ~/AIM-demo/k8s/scripts/deploy-scalable-service.sh
 
 # After deployment, wait for scalable service:
 bash ~/AIM-demo/k8s/scripts/wait-for-ready.sh aim-qwen3-32b-scalable watch
+
+# Verify the pod has the metrics sidecar (should show: kserve-container vllm-sidecar-collector):
+kubectl get pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].spec.containers[*].name}' && echo
+
+# If sidecar is missing, fix metrics configuration:
+# bash ~/AIM-demo/k8s/scripts/fix-metrics-config.sh aim-qwen3-32b-scalable
+# kubectl delete pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable
 
 # Set up port forwarding for scalable service (port 8080):
 bash ~/AIM-demo/k8s/scripts/setup-port-forward.sh aim-qwen3-32b-scalable 8080
@@ -154,10 +162,29 @@ kubectl port-forward -n otel-lgtm-stack svc/lgtm-stack 3000:3000
 # To view vLLM metrics in Grafana:
 # 1. Go to Explore (compass icon)
 # 2. Select "Prometheus" as data source
-# 3. Try queries like: vllm:num_requests_running
+# 3. Try queries like:
+#    - vllm:num_requests_running{service="isvc.aim-qwen3-32b-scalable-predictor"}
+#    - vllm:gpu_cache_usage_perc{service="isvc.aim-qwen3-32b-scalable-predictor"}
+#    - vllm:e2e_request_latency_seconds{service="isvc.aim-qwen3-32b-scalable-predictor"}
+# 
+# Note: Metrics may take 1-2 minutes to appear after sending requests (Prometheus scrape interval is 60s)
 # 
 # Verify metrics are being collected:
 bash ~/AIM-demo/k8s/scripts/check-grafana-metrics.sh
+# 
+# Or run comprehensive diagnostics:
+bash ~/AIM-demo/k8s/scripts/diagnose-metrics.sh aim-qwen3-32b-scalable
+# 
+# Troubleshooting: If metrics don't appear in Grafana:
+# 1. Ensure the scalable service pod has the sidecar: 
+#    kubectl get pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable -o jsonpath='{.items[0].spec.containers[*].name}'
+#    Should show: kserve-container vllm-sidecar-collector
+# 2. If sidecar is missing, fix configuration and restart pod:
+#    bash ~/AIM-demo/k8s/scripts/fix-metrics-config.sh aim-qwen3-32b-scalable
+#    kubectl delete pod -l serving.kserve.io/inferenceservice=aim-qwen3-32b-scalable
+# 3. Send requests to generate metrics:
+#    bash ~/AIM-demo/k8s/scripts/test-inference.sh aim-qwen3-32b-scalable 8080
+# 4. Wait 1-2 minutes for Prometheus to scrape (scrape interval is 60s)
 ```
 
 **Note:** All scripts are located in `~/AIM-demo/k8s/scripts/`. For manual commands and detailed explanations, see the [Deployment Steps](#deployment-steps) section below.
